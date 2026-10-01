@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2c3e50">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%233498db'/%3E%3Cpath d='M50 80 C20 60 16 42 26 32 C35 23 46 27 50 36 C54 27 65 23 74 32 C84 42 80 60 50 80Z' fill='white'/%3E%3C/svg%3E">
+<title>마음건강 자가검진</title>
+<style>
+  :root {
+    --bg: #f4f7f6; --card: #ffffff; --line: #e1e4e8; --text: #2c3e50; --muted: #6b7785;
+    --blue: #3498db; --blue-d: #2471a3; --orange: #f39c12; --red: #e74c3c;
+    --good: #27ae60; --warn: #e67e22; --high: #d35400;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 15px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .app-head { background: #2c3e50; color: #fff; padding: 0 20px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .app-head h1 { font-size: 18px; margin: 14px 0; font-weight: 700; }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tabs button { background: transparent; border: 0; color: #c9d3dc; padding: 16px 14px; cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; }
+  .tabs button.on { color: #fff; border-bottom-color: var(--blue); }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 12px; font-size: 17px; }
+  .card h4 { margin: 18px 0 8px; font-size: 15px; }
+  .hint { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .row > label { flex: 1 1 160px; }
+  label.f { display: block; font-size: 13px; color: var(--muted); font-weight: 600; }
+  label.f input, label.f select, label.f textarea { display: block; width: 100%; margin-top: 4px; }
+  input[type=text], input[type=number], input[type=tel], select, textarea { border: 1px solid #ccd3da; border-radius: 6px; padding: 7px 9px; background: #fff; }
+  textarea { width: 100%; min-height: 54px; resize: vertical; line-height: 1.45; }
+  input.sm { width: 64px; } input.md { width: 120px; }
+  .btn { border: 1px solid #ccd3da; background: #fff; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+  .btn:hover { background: #f2f5f7; }
+  .btn.pri { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.pri:hover { background: var(--blue-d); }
+  .btn.danger { color: #c0392b; }
+  .btn.sm { padding: 4px 9px; font-size: 13px; }
+  .btn.lg { padding: 12px 26px; font-size: 17px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+  .spacer { flex: 1; }
+  .chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 7px 8px; text-align: left; vertical-align: top; }
+  table.t th { background: #f6f8fa; font-size: 13px; color: var(--muted); }
+  .tbl-wrap { overflow-x: auto; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; color: #fff; font-size: 12.5px; font-weight: 700; }
+  .b-양호 { background: var(--blue); } .b-주의 { background: var(--orange); } .b-위험 { background: var(--red); }
+  .t-양호 { background: var(--good); } .t-주의 { background: var(--warn); } .t-위험 { background: var(--high); }
+  .msg { padding: 10px 14px; border-radius: 8px; margin: 10px 0; font-size: 14px; line-height: 1.5; }
+  .msg.err { background: #fdecea; color: #a93226; } .msg.ok { background: #e8f6ee; color: #1e8449; } .msg.info { background: #eef6fb; color: #1f618d; }
+
+  /* 검사 화면 */
+  .q-scale { margin-bottom: 22px; }
+  .q-scale h3 { border-left: 5px solid var(--blue); padding-left: 10px; }
+  .q-item { padding: 14px 0; border-top: 1px solid var(--line); }
+  .q-item.missing { background: #fff4f2; }
+  .q-item.skipped { opacity: .35; }
+  .q-text { font-weight: 600; margin-bottom: 10px; line-height: 1.5; }
+  .q-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .q-opts label { flex: 1 1 140px; border: 1px solid #ccd3da; border-radius: 8px; padding: 11px 10px; text-align: center; cursor: pointer; background: #fff; user-select: none; }
+  .q-opts input { display: none; }
+  .q-opts label.sel { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+  .scale-pick label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+
+  /* 설정 */
+  .set-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .set-nav button { border: 1px solid var(--line); background: #fff; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+  .set-nav button.on { background: var(--text); color: #fff; border-color: var(--text); }
+  .save-bar { position: sticky; top: 0; z-index: 5; background: #fff8e6; border: 1px solid #f5d78e; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; gap: 10px; align-items: center; }
+  .ed-grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 760px) { .ed-grid { grid-template-columns: 1fr; } }
+  .scale-list button { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+  .scale-list button.on { border-color: var(--blue); box-shadow: inset 4px 0 0 var(--blue); font-weight: 700; }
+  .scale-list .off { color: var(--muted); font-size: 12px; }
+  .item-ed, .rule-ed { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fbfcfd; }
+  .item-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-weight: 700; }
+  .opt-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .opt-row input[type=text] { flex: 1 1 200px; }
+  .cond-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .drop { border: 2px dashed #b7c3cd; border-radius: 10px; padding: 34px; text-align: center; background: #fff; }
+  .drop.over { border-color: var(--blue); background: #eef6fb; }
+
+  /* 결과 보기 오버레이 */
+  #overlay { position: fixed; inset: 0; background: rgba(30,40,50,.55); z-index: 50; overflow-y: auto; padding: 20px 10px; display: none; }
+  #overlay.on { display: block; }
+  .ov-bar { max-width: 650px; margin: 0 auto 10px; display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* 결과지 (기존 ReportTemplate 디자인) */
+  .report { max-width: 650px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; color: #333; }
+  .report h2 { text-align: center; color: #2c3e50; margin: 0 0 6px; font-size: 22px; }
+  .report .r-date { text-align: center; color: #7f8c8d; font-size: 13px; margin-bottom: 20px; }
+  .report .user-info { background: #eef2f3; padding: 15px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-around; font-size: 15px; flex-wrap: wrap; gap: 6px; }
+  .report .result-card { background: #fafbfc; border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px; margin-bottom: 20px; break-inside: avoid; }
+  .report .result-title { font-weight: bold; font-size: 16px; color: #2c3e50; margin-bottom: 8px; border-left: 4px solid #3498db; padding-left: 8px; }
+  .report .desc-text { font-size: 14px; color: #555; line-height: 1.5; margin-bottom: 12px; }
+  .report .score-box { font-size: 15px; font-weight: bold; text-align: center; background: #f1f2f6; padding: 8px; border-radius: 6px; margin-bottom: 12px; }
+  .report .level-bar { display: flex; border-radius: 6px; overflow: hidden; font-weight: bold; font-size: 14px; text-align: center; color: #fff; }
+  .report .level-item { flex: 1; padding: 8px 0; background: #bdc3c7; opacity: .4; }
+  .report .level-item.active-양호 { background: #3498db; opacity: 1; }
+  .report .level-item.active-주의 { background: #f39c12; opacity: 1; }
+  .report .level-item.active-위험 { background: #e74c3c; opacity: 1; }
+  .report .comment-box { display: flex; align-items: flex-start; background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 13px; line-height: 1.4; color: #444; border: 1px solid #eee; }
+  .report .comment-box span { font-size: 20px; margin-right: 8px; }
+  .report .incomplete { font-size: 12px; color: #a93226; margin-top: 6px; text-align: right; }
+  .report .total-card { border-radius: 8px; padding: 20px; margin-top: 25px; color: #fff; break-inside: avoid; }
+  .report .total-card h3 { margin: 0 0 8px; border-bottom: 1px solid rgba(255,255,255,.3); padding-bottom: 8px; }
+  .report .total-양호 { background: #27ae60; } .report .total-주의 { background: #e67e22; } .report .total-위험 { background: #d35400; }
+  .report .contact-card { background: #eef6fb; border: 1px solid #d3e6f0; border-radius: 8px; padding: 16px 20px; margin-top: 20px; font-size: 17px; font-weight: bold; color: #2c3e50; line-height: 1.6; break-inside: avoid; }
+  .report .contact-title { font-size: 18px; margin-bottom: 8px; }
+  .report .contact-line { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .report .footer { text-align: center; margin-top: 30px; font-size: 13px; color: #7f8c8d; }
+
+  #print-area { display: none; }
+  body.public .app-head { justify-content: center; }
+  body.public .tabs { display: none; }
+  .consent { background:#f6f8fa; border-radius:8px; padding:12px 14px; font-size:13.5px; line-height:1.6; color:#4a5866; white-space:pre-line; margin:8px 0 10px; }
+  .crisis { max-width:650px; margin:0 auto 12px; background:#fff1f0; border:2px solid #e74c3c; color:#922b21; border-radius:12px; padding:14px 18px; font-size:16px; line-height:1.6; }
+  .crisis a { color:#c0392b; font-weight:800; font-size:20px; }
+  .ov-bar { flex-wrap: wrap; }
+  .ov-status { flex:1 1 100%; order:2; color:#fff; font-size:14px; text-align:right; }
+  .ov-status:empty { display:none; }
+  @media print {
+    body { background: #fff !important; }
+    body > *:not(#print-area) { display: none !important; }
+    #print-area { display: block !important; }
+    .report-page { page-break-after: always; break-after: page; }
+    .report-page:last-child { page-break-after: auto; break-after: auto; }
+    .report { padding: 0 !important; max-width: none; }
+    .report * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+</style>
+<script>window.PUBLIC_MODE = true;</script>
+</head>
+<body>
+
+<header class="app-head">
+  <h1>📋 정신건강 자가검진</h1>
+  <nav class="tabs" id="tabs">
+    <button data-tab="test" class="on">검사하기</button>
+    <button data-tab="batch">엑셀 일괄처리</button>
+    <button data-tab="records">검사 기록</button>
+    <button data-tab="settings">척도·설정 관리</button>
+  </nav>
+</header>
+
+<main>
+  <section id="tab-test"></section>
+  <section id="tab-batch" hidden></section>
+  <section id="tab-records" hidden></section>
+  <section id="tab-settings" hidden></section>
+</main>
+
+<div id="overlay">
+  <div class="ov-bar"><span class="ov-status" id="ov-status"></span>
+    <button class="btn pri" id="ov-print">🖨 인쇄 / PDF 저장</button>
+    <button class="btn" id="ov-close">닫기</button>
+  </div>
+  <div id="ov-body"></div>
+</div>
+
+<div id="print-area"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   기본 설정 (처음 실행하거나 '기본값으로 초기화' 할 때 사용)
+   ===================================================================== */
+const OPT_PHQ = [
+  { label: '전혀 방해받지 않았다', score: 0 },
+  { label: '며칠 동안 방해 받았다', score: 1 },
+  { label: '7일 이상 방해 받았다', score: 2 },
+  { label: '거의 매일 방해 받았다', score: 3 }
+];
+const OPT_GAD = [
+  { label: '전혀 방해받지 않았다', score: 0 },
+  { label: '며칠 동안 방해 받았다', score: 1 },
+  { label: '절반 이상 방해 받았다', score: 2 },
+  { label: '거의 매일 방해 받았다', score: 3 }
+];
+const mkItems = (texts, opts, cols) => texts.map((t, i) => ({ text: t, col: cols ? cols[i] || '' : '', options: JSON.parse(JSON.stringify(opts)) }));
+
+const DESC_PHQ_BAD = '높은 수준의 우울감은 흔히 신체적, 심리적 대처자원을 저하시키며, 개인의 일상생활을 어렵게 만들기도 합니다. 가까운 지역센터나 전문 기관을 방문하여 보다 상세한 평가와 도움을 받아보시기 바랍니다.';
+const DESC_GAD_BAD = '주의가 필요한 수준의 걱정과 불안이 우려됩니다. 주의 깊은 관찰과 관심이 필요하며, 추가적인 평가 및 정신건강의학과 또는 정신건강복지센터에서의 전문가 상담이 필요할 수 있습니다.';
+
+const DEFAULT_CONFIG = {
+  version: 1,
+  orgName: '',
+  api: '',   // 참여자 화면 결과를 받을 구글시트 웹 앱 주소
+  consentText: '수집 항목: 이름(별칭 가능), 연락처, 성별, 연령대, 거주지, 검사 응답 및 결과\n수집 목적: 검사 결과 안내 및 상담이 필요한 경우 센터의 연락·상담 연계\n보유 기간: 수집일로부터 1년\n동의를 거부할 수 있으며, 거부하실 경우 검사 참여가 제한됩니다.',
+  hotline: '109 / 1577-0199',
+  footer: '본 검사 결과는 자가검진 참고용으로 활용되며, 정확한 진단은 전문가와 상담하세요.',
+  genders: ['남', '여'],
+  ages: ['10대', '20대', '30대', '40대', '50대', '60대', '70대 이상'],
+  infoColumns: { name: 'C', gender: 'D', age: 'E', region: 'F' },
+  scales: [
+    {
+      id: 'phq9', enabled: true, name: '우울척도 (PHQ-9)', shortName: '우울척도', method: 'sum',
+      intro: '우울증은 우울하고 슬픈 감정을 비롯하여 죄책감, 좌절감, 절망감, 고독감, 허무감 등과 같은 고통스러운 정서 상태가 지속되며, 이와 더불어 일상 활동에 대한 흥미와 즐거움이 저하되어 매사에 의욕이 없고 무력감을 자주 느끼는 것을 말합니다.',
+      instruction: '지난 2주 동안 다음과 같은 문제들로 얼마나 자주 방해를 받았는지 선택해 주세요.',
+      items: mkItems([
+        '일을 하는 것에 대한 흥미나 재미가 거의 없음',
+        '가라앉은 느낌, 우울감 혹은 절망감',
+        '잠들기 어렵거나 자꾸 깨어남, 혹은 너무 많이 잠',
+        '피곤함, 기력이 저하됨',
+        '식욕 저하 혹은 과식',
+        '내 자신이 실패자로 여겨지거나, 자신과 가족을 실망시켰다고 느낌',
+        '신문을 읽거나 TV를 보는 것과 같은 일상적인 일에 집중하기 어려움',
+        '다른 사람들이 눈치 챌 정도로 말과 행동이 느려짐, 혹은 너무 안절부절 못해서 가만히 앉아 있을 수 없음',
+        '차라리 죽는 것이 낫겠다고 생각하거나, 어떻게든 자해를 하려고 생각함'
+      ], OPT_PHQ, ['L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T']),
+      levels: [
+        { min: 0, level: '양호', desc: '우울 감정 없이 긍정적이고 안정적인 일상을 보내고 계신 상태입니다.' },
+        { min: 5, level: '주의', desc: DESC_PHQ_BAD },
+        { min: 10, level: '위험', desc: DESC_PHQ_BAD }
+      ],
+      rules: [], default: { label: '', level: '양호', desc: '' }
+    },
+    {
+      id: 'p4', enabled: true, name: '자살위험도 (P-4)', shortName: '자살위험도', method: 'rules',
+      intro: '사람들은 삶에 희망이 보이지 않거나 더 이상 버텨낼 수 없다는 생각이 들 때, 또는 상대와의 관계를 풀어갈 수 없다는 생각이 들 때 가끔 자신을 지탱하고 있는 줄을 놓아버리고 싶은 생각이 듭니다. 자살시도의 과거력이 있거나 자살의도를 표현하는 경우 긴급 조치가 필요합니다.',
+      instruction: '다음 질문에 답해 주세요.',
+      items: [
+        { text: '최근 한 달 동안 죽고 싶다는 생각을 해 본 적이 있습니까?', col: 'U',
+          options: [{ label: '있다', score: 0 }, { label: '없다', score: 0, skip: true }] },
+        { text: '과거에 자살을 시도한 적이 있습니까?', col: 'V',
+          options: [{ label: '있다', score: 0 }, { label: '없다', score: 0 }] },
+        { text: '최근에 자살 방법에 대해 생각해 본 적이 있습니까?', col: 'W',
+          options: [{ label: '있다', score: 0 }, { label: '없다', score: 0 }] },
+        { text: '실제로 자살을 시도할 가능성이 어느 정도라고 생각합니까?', col: 'Y',
+          options: [{ label: '전혀 아니다', score: 0 }, { label: '약간 그렇다', score: 0 }, { label: '매우 그렇다', score: 0 }] },
+        { text: '자살 시도를 하지 않도록 막아줄 수 있는 것(사람, 이유 등)이 있습니까?', col: 'Z',
+          options: [{ label: '있다', score: 0 }, { label: '없다', score: 0 }] }
+      ],
+      levels: [],
+      rules: [
+        { match: 'any', conds: [{ item: 0, answers: [1] }], label: '자살위험성 거의 없음', level: '양호',
+          desc: '자살 위험성이 거의 없으며 심리적으로 안정된 상태입니다.' },
+        { match: 'any', conds: [{ item: 3, answers: [1, 2] }, { item: 4, answers: [1] }], label: '고위험', level: '위험',
+          desc: '자살 가능성이 있다고 보고하였거나 자살사고나 행동을 저지할 수 있는 보호요인이 없다고 보고하였습니다. 추가적인 평가나 정신건강 전문가의 도움을 받아보시기를 권해드립니다.' },
+        { match: 'any', conds: [{ item: 1, answers: [0] }, { item: 2, answers: [0] }], label: '주의', level: '주의',
+          desc: '자살 과거력이나 자살 계획에 대한 생각을 보고하였지만, 우발적인 자살 시도를 보일 가능성은 낮습니다.' }
+      ],
+      default: { label: '자살위험성 거의 없음', level: '양호', desc: '자살 위험성이 거의 없으며 심리적으로 안정된 상태입니다.' }
+    },
+    {
+      id: 'gad7', enabled: false, name: '범불안장애 척도 (GAD-7)', shortName: '범불안장애', method: 'sum',
+      intro: '불안은 일상생활 속에서 겪게 되는 여러 가지 사건이나 활동에 대해 지나친 걱정으로 발생합니다. 불안이 지속되면 늘 과민하고 긴장된 상태에 있게 되며 짜증이나 화가 자주 나고 쉽게 피로감을 느낄 수 있습니다.',
+      instruction: '지난 2주 동안 다음과 같은 문제들로 얼마나 자주 방해를 받았는지 선택해 주세요.',
+      items: mkItems([
+        '초조하거나 불안하거나 조마조마하게 느낀다',
+        '걱정하는 것을 멈추거나 조절할 수가 없다',
+        '여러 가지 것들에 대해 걱정을 너무 많이 한다',
+        '편하게 있기가 어렵다',
+        '너무 안절부절못해서 가만히 있기가 힘들다',
+        '쉽게 짜증이 나거나 쉽게 성을 내게 된다',
+        '마치 끔찍한 일이 생길 것처럼 두렵게 느껴진다'
+      ], OPT_GAD, null),
+      levels: [
+        { min: 0, level: '양호', desc: '불안 수준이 낮고 안정적인 상태입니다. 현재의 마음 상태를 잘 유지하시길 바랍니다.' },
+        { min: 5, level: '주의', desc: DESC_GAD_BAD },
+        { min: 10, level: '위험', desc: DESC_GAD_BAD }
+      ],
+      rules: [], default: { label: '', level: '양호', desc: '' }
+    }
+  ],
+  totalRules: [
+    { match: 'any', conds: [{ scale: 'p4', levels: ['위험'] }], label: '고위험', level: '위험',
+      desc: '스트레스 및 마음건강상 어려움을 겪을 우려가 높습니다. 현재의 스트레스 및 마음건강 악화로 인해 일상생활 및 사회[학교]활동에 지장을 겪을 수 있습니다. 현재의 원상에 어려움을 겪고 계시다면, 보다 자세한 파악을 권유드리며 해당 검사기관으로 문의하시면 무료로 심층상담 및 검사를 받아보실 수 있습니다. 앞으로도 정신건강에 대한 많은 관심 바랍니다.' },
+    { match: 'any', conds: [{ scale: '*', levels: ['주의', '위험'] }], label: '주의', level: '주의',
+      desc: '스트레스 및 마음건강상 어려움이 발생할 우려가 있습니다. 마음건강에 대한 세심한 관심과 주의가 필요하며, 현재의 스트레스 및 증상이 일정기간 동안 완화되지 않거나 심해질 경우 심층검사를 받아보시길 권유드립니다. 스트레스 및 마음건강검사 결과에 대한 자세한 설명 및 누락된 검사에 대한 재검사를 원하실 경우 해당 검사기관으로 연락주시면 자세하게 무료로 상담 받을 수 있습니다. 앞으로도 정신건강에 대한 많은 관심 바랍니다.' }
+  ],
+  totalDefault: { label: '양호', level: '양호', desc: '전반적인 정신건강 상태가 양호합니다. 현재의 건강한 생활습관을 계속 유지해 주세요.' },
+  regions: [
+    { name: '영종', display: '인천 영종구', phone: '032-760-6090', message: false },
+    { name: '제물포', display: '인천 제물포구', phone: '032-765-3690', message: false },
+    { name: '미추홀', display: '인천 미추홀구', phone: '032-421-4045', message: false },
+    { name: '연수', display: '인천 연수구', phone: '032-899-9430', message: false },
+    { name: '남동', display: '인천 남동구', phone: '032-465-6412', message: false },
+    { name: '부평', display: '인천 부평구', phone: '032-330-5602', message: false },
+    { name: '계양', display: '인천 계양구', phone: '032-547-7087', message: false },
+    { name: '서해', display: '인천 서해구', phone: '032-718-0625', message: false },
+    { name: '검단', display: '인천 검단구', phone: '서해구정신건강복지센터 문의해주세요 032-718-0625', message: true },
+    { name: '강화', display: '인천 강화군', phone: '032-932-4093', message: false },
+    { name: '옹진', display: '인천 옹진군', phone: '032-721-0560', message: false }
+  ]
+};
+
+/* =====================================================================
+   공통 도구
+   ===================================================================== */
+const LEVELS = ['양호', '주의', '위험'];
+const LS_CFG = 'mhs_config_v1', LS_REC = 'mhs_records_v1';
+const $ = (s, r = document) => r.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s == null ? '' : s).replace(/\s+/g, '');
+function lsSave(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+function lsLoad(k) { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function today() { const d = new Date(); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function fileStamp() { return today().replace(/[-: ]/g, '').slice(0, 12); }
+
+function colToIdx(c) { c = String(c || '').trim().toUpperCase(); if (!/^[A-Z]+$/.test(c)) return -1; let n = 0; for (const ch of c) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; }
+function idxToCol(i) { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+function parseCols(str) {
+  const out = [];
+  String(str || '').toUpperCase().split(/[,\s]+/).filter(Boolean).forEach(p => {
+    const m = p.match(/^([A-Z]+)[-~:]([A-Z]+)$/);
+    if (m) { const a = colToIdx(m[1]), b = colToIdx(m[2]); const st = a <= b ? 1 : -1; for (let i = a; st > 0 ? i <= b : i >= b; i += st) out.push(idxToCol(i)); }
+    else out.push(p);
+  });
+  return out;
+}
+function colsToStr(cols) {
+  const res = []; let i = 0;
+  while (i < cols.length) {
+    let j = i; const a = colToIdx(cols[i]);
+    if (a < 0) { res.push(cols[i] || '?'); i++; continue; }
+    while (j + 1 < cols.length && colToIdx(cols[j + 1]) === colToIdx(cols[j]) + 1) j++;
+    res.push(j - i >= 2 ? `${cols[i]}-${cols[j]}` : cols.slice(i, j + 1).join(','));
+    i = j + 1;
+  }
+  return res.join(',');
+}
+function download(name, blob) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+function saveWb(wb, name) { const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }); download(name, new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); }
+
+/* =====================================================================
+   판정 엔진
+   ===================================================================== */
+// 응답 문자열 → 보기 번호 (띄어쓰기 무시, 포함 여부, 숫자 점수 순으로 매칭)
+function matchOption(item, raw) {
+  const a = norm(raw); if (!a) return -1;
+  let idx = item.options.findIndex(o => norm(o.label) === a); if (idx >= 0) return idx;
+  let best = -1, bl = 0;
+  item.options.forEach((o, i) => { const l = norm(o.label); if (l && a.indexOf(l) !== -1 && l.length > bl) { best = i; bl = l.length; } });
+  if (best >= 0) return best;
+  if (/^-?\d+(\.\d+)?$/.test(a)) {
+    const n = Number(a); const m = []; item.options.forEach((o, i) => { if (Number(o.score) === n) m.push(i); });
+    if (m.length === 1) return m[0];
+  }
+  return -1;
+}
+function maxScore(scale) { return scale.items.reduce((s, it) => s + Math.max(0, ...it.options.map(o => Number(o.score) || 0)), 0); }
+
+// 건너뛰기 반영: 건너뛰기 보기를 고른 문항 다음부터는 -2(해당 없음)
+function effectiveAnswers(scale, ans) {
+  const eff = []; let stop = false;
+  scale.items.forEach((it, i) => {
+    if (stop) { eff.push(-2); return; }
+    const k = ans[i] == null ? -1 : ans[i]; eff.push(k);
+    if (k >= 0 && it.options[k] && it.options[k].skip) stop = true;
+  });
+  return eff;
+}
+function evalScale(scale, ans) {
+  const eff = effectiveAnswers(scale, ans);
+  let score = 0, answered = 0, missing = 0;
+  eff.forEach((k, i) => {
+    if (k >= 0) { answered++; score += Number(scale.items[i].options[k].score) || 0; }
+    else if (k === -1) missing++;
+  });
+  if (answered === 0) return null;
+  if (scale.method === 'sum') {
+    const lv = [...scale.levels].sort((x, y) => Number(x.min) - Number(y.min)).filter(l => score >= Number(l.min)).pop()
+      || { level: '양호', desc: '' };
+    return { score, label: String(score), level: lv.level, desc: lv.desc, missing };
+  }
+  for (const r of scale.rules) {
+    const tests = (r.conds || []).map(c => eff[c.item] >= 0 && (c.answers || []).includes(eff[c.item]));
+    const ok = r.match === 'all' ? (tests.length > 0 && tests.every(Boolean)) : tests.some(Boolean);
+    if (ok) return { score, label: r.label, level: r.level, desc: r.desc, missing };
+  }
+  const d = scale.default || { label: '', level: '양호', desc: '' };
+  return { score, label: d.label, level: d.level, desc: d.desc, missing };
+}
+function evalTotal(cfg, resById) {
+  const vals = Object.values(resById).filter(Boolean);
+  if (!vals.length) return null;
+  for (const r of cfg.totalRules) {
+    const tests = (r.conds || []).map(c => {
+      if (c.scale === '*') return vals.some(x => (c.levels || []).includes(x.level));
+      const x = resById[c.scale]; return !!x && (c.levels || []).includes(x.level);
+    });
+    const ok = r.match === 'all' ? (tests.length > 0 && tests.every(Boolean)) : tests.some(Boolean);
+    if (ok) return { label: r.label, level: r.level, desc: r.desc };
+  }
+  return clone(cfg.totalDefault);
+}
+function regionKey(s) {
+  let k = norm(s).replace(/^(인천광역시|인천시|인천)/, '');
+  if (k.length > 1 && /[구군]$/.test(k)) k = k.slice(0, -1);
+  return k;
+}
+function findRegion(cfg, region) {
+  const k = regionKey(region); if (!k) return null;
+  return cfg.regions.find(r => regionKey(r.name) === k || regionKey(r.display) === k) || null;
+}
+// 한 사람의 결과지 데이터(스냅샷) 만들기
+function buildSnapshot(cfg, person, answersById, dateStr) {
+  const scales = [], resById = {};
+  cfg.scales.forEach(s => {
+    if (!(s.id in answersById)) return;
+    const r = evalScale(s, answersById[s.id]);
+    resById[s.id] = r;
+    if (!r) return;
+    const eff = effectiveAnswers(s, answersById[s.id]);
+    scales.push({ id: s.id, name: s.name, shortName: s.shortName, intro: s.intro, method: s.method,
+      score: r.score, label: r.label, level: r.level, desc: r.desc, missing: r.missing,
+      answers: eff.map((k, i) => k >= 0 ? s.items[i].options[k].label : (k === -2 ? '(해당없음)' : '')) });
+  });
+  const total = evalTotal(cfg, resById);
+  const reg = findRegion(cfg, person.region);
+  return { date: dateStr || today(), person: clone(person), scales, total,
+    contact: reg ? { display: reg.display, phone: reg.phone, message: !!reg.message } : null,
+    hotline: cfg.hotline, orgName: cfg.orgName, footer: cfg.footer };
+}
+
+/* =====================================================================
+   결과지 렌더링
+   ===================================================================== */
+function renderReport(sn) {
+  const p = sn.person || {};
+  const cards = sn.scales.map(s => `
+    <div class="result-card">
+      <div class="result-title">${esc(s.name)}</div>
+      ${s.intro ? `<div class="desc-text">${esc(s.intro)}</div>` : ''}
+      <div class="score-box">※ 당신의 ${esc(s.shortName || s.name)} ${s.method === 'sum'
+        ? `수치는 <span style="color:#2980b9">${esc(s.score)}</span> 입니다.`
+        : `평가는 <span style="color:#c0392b">${esc(s.label)}</span> 입니다.`}</div>
+      <div class="level-bar">${LEVELS.map(l => `<div class="level-item ${s.level === l ? 'active-' + l : ''}">${l}</div>`).join('')}</div>
+      ${s.desc ? `<div class="comment-box"><span>👩‍⚕️</span><div>${esc(s.desc)}</div></div>` : ''}
+      ${s.missing ? `<div class="incomplete">※ 미응답 ${s.missing}문항이 있어 결과가 실제보다 낮게 나왔을 수 있습니다.</div>` : ''}
+    </div>`).join('');
+  const total = sn.total ? `
+    <div class="total-card total-${esc(sn.total.level)}">
+      <h3>총 결과: ${esc(sn.total.label)}</h3>
+      <div style="font-size:14px;line-height:1.5">${esc(sn.total.desc)}</div>
+    </div>` : '';
+  let contact = '';
+  if (sn.contact && sn.contact.message) contact = `<div class="contact-line"><span>${esc(sn.contact.phone)}</span></div>`;
+  else if (sn.contact) contact = `<div class="contact-line"><span>${esc(sn.contact.display)} 정신건강복지센터</span><span>${esc(sn.contact.phone)}</span></div>`;
+  else contact = `<div class="contact-line"><span>거주지 정신건강복지센터로 문의해주세요</span></div>`;
+  return `
+  <div class="report">
+    <h2>📋 정신건강 자가검진 결과 리포트</h2>
+    <div class="r-date">검사일 ${esc(String(sn.date).slice(0, 10))}${sn.orgName ? ' · ' + esc(sn.orgName) : ''}</div>
+    <div class="user-info">
+      <div><strong>이름:</strong> ${esc(p.name || '-')}</div>
+      <div><strong>성별:</strong> ${esc(p.gender || '-')}</div>
+      <div><strong>연령:</strong> ${esc(p.age || '-')}</div>
+    </div>
+    ${cards}
+    ${total}
+    <div class="contact-card">
+      <div class="contact-title">📞 도움을 받을 수 있는 곳</div>
+      ${contact}
+      <div class="contact-line"><span>정신건강 위기상담전화 (24시간)</span><span>${esc(sn.hotline)}</span></div>
+    </div>
+    <div class="footer">${esc(sn.footer)}</div>
+  </div>`;
+}
+let ovSnaps = [], ovOnClose = null;
+function showReport(snap, onClose) {
+  ovSnaps = [snap]; ovOnClose = onClose || null;
+  ovStatus('');
+  const crisis = PUBLIC && snap.total && snap.total.level === '위험'
+    ? `<div class="crisis">지금 많이 힘드시다면 혼자 견디지 마세요.<br>24시간 언제든 <a href="tel:109">☎ 109</a> (자살예방 상담전화)로 연락하시면 바로 도움을 받으실 수 있습니다.</div>` : '';
+  $('#ov-body').innerHTML = crisis + renderReport(snap);
+  $('#overlay').classList.add('on'); $('#overlay').scrollTop = 0;
+}
+function closeReport() { $('#overlay').classList.remove('on'); const f = ovOnClose; ovOnClose = null; if (f) f(); }
+function printReports(snaps) {
+  if (!snaps.length) { alert('인쇄할 결과가 없습니다.'); return; }
+  $('#print-area').innerHTML = snaps.map(s => `<div class="report-page">${renderReport(s)}</div>`).join('');
+  setTimeout(() => window.print(), 50);
+}
+$('#ov-print').onclick = () => printReports(ovSnaps);
+$('#ov-close').onclick = closeReport;
+
+/* =====================================================================
+   상태
+   ===================================================================== */
+function migrate(c) {
+  const d = clone(DEFAULT_CONFIG);
+  for (const k of Object.keys(d)) if (c[k] === undefined) c[k] = d[k];
+  c.scales.forEach(s => { s.levels = s.levels || []; s.rules = s.rules || []; s.default = s.default || { label: '', level: '양호', desc: '' }; });
+  return c;
+}
+const PUBLIC = !!window.PUBLIC_MODE;   // 참여자용 화면(p.html)
+let config = PUBLIC ? clone(DEFAULT_CONFIG) : migrate(lsLoad(LS_CFG) || clone(DEFAULT_CONFIG));
+let records = PUBLIC ? [] : (lsLoad(LS_REC) || []);
+let storageOK = lsSave('mhs_probe', 1);
+let draft = clone(config), dirty = false, setSub = 'scales', selScale = 0;
+let curTab = 'test';
+
+function saveRecords() { if (!lsSave(LS_REC, records)) alert('기록을 저장하지 못했습니다. 브라우저 저장공간이 막혀 있을 수 있습니다. 검사 기록 탭에서 엑셀로 내려받아 보관해 주세요.'); }
+
+/* 탭 전환 */
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  curTab = b.dataset.tab;
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['test', 'batch', 'records', 'settings'].forEach(t => $('#tab-' + t).hidden = t !== curTab);
+  renderTab();
+});
+function renderTab() { ({ test: renderTest, batch: renderBatch, records: renderRecords, settings: renderSettings })[curTab](); }
+
+/* =====================================================================
+   1) 검사하기
+   ===================================================================== */
+let test = null;
+function newTest() { test = { stage: 'info', person: { name: '', phone: '', gender: '', age: '', region: '', regionEtc: '' }, consent: false, selected: config.scales.filter(s => s.enabled).map(s => s.id), answers: {}, msg: '' }; }
+newTest();
+
+function renderTest() {
+  const el = $('#tab-test');
+  const enabled = config.scales.filter(s => s.enabled);
+  if (test.stage === 'info') {
+    const p = test.person;
+    const sel = (key, list) => `<select data-p="${key}"><option value="">선택</option>${list.map(v => `<option ${p[key] === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
+    el.innerHTML = `
+    ${storageOK || PUBLIC ? '' : '<div class="msg err">이 브라우저에서는 저장 기능이 막혀 있어 검사 기록과 설정이 창을 닫으면 사라집니다. 결과는 바로 인쇄하거나 엑셀로 내려받아 주세요.</div>'}
+    ${PUBLIC ? `<div class="card"><h3>마음건강 자가검진</h3><p class="hint" style="font-size:14.5px">몇 가지 질문에 답하시면 결과를 바로 확인하실 수 있습니다. 응답 내용은 ${esc(config.orgName || '센터')}에만 전달되며, 상담이 필요하다고 판단되면 센터에서 연락드릴 수 있습니다.</p></div>` : ''}
+    <div class="card">
+      <h3>기본 정보</h3>
+      <div class="row">
+        <label class="f">이름${PUBLIC ? ' (별칭 가능)' : ''} <input type="text" data-p="name" value="${esc(p.name)}" placeholder="이름 또는 별칭" autocomplete="name"></label>
+        ${PUBLIC ? `<label class="f">연락처 <input type="tel" data-p="phone" value="${esc(p.phone)}" placeholder="010-0000-0000" autocomplete="tel"></label>` : ''}
+        <label class="f">성별 ${sel('gender', config.genders)}</label>
+        <label class="f">연령대 ${sel('age', config.ages)}</label>
+        <label class="f">거주지 <select data-p="region"><option value="">선택</option>${config.regions.map(r => `<option ${p.region === r.display ? 'selected' : ''}>${esc(r.display)}</option>`).join('')}<option value="__etc" ${p.region === '__etc' ? 'selected' : ''}>기타 (직접 입력)</option></select></label>
+        ${p.region === '__etc' ? `<label class="f">거주지 직접 입력 <input type="text" data-p="regionEtc" value="${esc(p.regionEtc)}"></label>` : ''}
+      </div>
+    </div>
+    ${PUBLIC ? `<div class="card"><h3>개인정보 수집·이용 동의</h3><div class="consent">${esc(config.consentText)}</div>
+      <label class="chk" style="font-weight:700"><input type="checkbox" id="t-consent" ${test.consent ? 'checked' : ''} style="width:22px;height:22px"> 위 내용에 동의합니다</label></div>` : ''}
+    <div class="card scale-pick" ${PUBLIC ? 'hidden' : ''}>
+      <h3>실시할 검사</h3>
+      ${enabled.length ? enabled.map(s => `<label><input type="checkbox" data-pick="${esc(s.id)}" ${test.selected.includes(s.id) ? 'checked' : ''}> <b>${esc(s.name)}</b> <span class="hint">${s.items.length}문항</span></label>`).join('')
+        : '<div class="msg info">사용 중인 척도가 없습니다. ‘척도·설정 관리’에서 척도를 켜 주세요.</div>'}
+    </div>
+    ${test.msg ? `<div class="msg err">${esc(test.msg)}</div>` : ''}
+    <div class="bar"><span class="spacer"></span><button class="btn pri lg" id="t-start">검사 시작</button></div>`;
+    el.querySelectorAll('[data-p]').forEach(i => i.addEventListener('input', () => { test.person[i.dataset.p] = i.value; if (i.dataset.p === 'region') renderTest(); }));
+    el.querySelectorAll('[data-pick]').forEach(i => i.addEventListener('change', () => {
+      const id = i.dataset.pick; test.selected = test.selected.filter(x => x !== id); if (i.checked) test.selected.push(id);
+    }));
+    if ($('#t-consent')) $('#t-consent').onchange = e => { test.consent = e.target.checked; };
+    $('#t-start').onclick = () => {
+      if (PUBLIC) {
+        const p = test.person, bad = m => { test.msg = m; renderTest(); };
+        if (!p.name.trim()) return bad('이름(또는 별칭)을 입력해 주세요.');
+        if (String(p.phone).replace(/[^0-9]/g, '').length < 10) return bad('연락처를 정확히 입력해 주세요.');
+        if (!p.gender || !p.age || !p.region || (p.region === '__etc' && !p.regionEtc.trim())) return bad('성별, 연령대, 거주지를 선택해 주세요.');
+        if (!test.consent) return bad('개인정보 수집·이용에 동의해 주세요.');
+        test.selected = enabled.map(s => s.id);
+      }
+      const sel = enabled.filter(s => test.selected.includes(s.id));
+      if (!sel.length) { test.msg = '실시할 검사를 하나 이상 선택해 주세요.'; renderTest(); return; }
+      test.msg = ''; test.stage = 'q'; test.answers = {}; sel.forEach(s => test.answers[s.id] = s.items.map(() => -1));
+      renderTest(); window.scrollTo(0, 0);
+    };
+    return;
+  }
+  // 문항 화면
+  const scales = config.scales.filter(s => s.id in test.answers);
+  el.innerHTML = `
+    <div class="card"><b>${esc(test.person.name || '응답자')}</b> 님 검사 중 <span class="hint">· 해당하는 답을 눌러 주세요</span></div>
+    ${scales.map(s => `
+      <div class="card q-scale" data-scale="${esc(s.id)}">
+        <h3>${esc(s.name)}</h3>
+        ${s.instruction ? `<div class="hint" style="margin-bottom:8px">${esc(s.instruction)}</div>` : ''}
+        ${s.items.map((it, i) => `
+          <div class="q-item" data-i="${i}">
+            <div class="q-text">${i + 1}. ${esc(it.text)}</div>
+            <div class="q-opts">${it.options.map((o, k) => `<label class="${test.answers[s.id][i] === k ? 'sel' : ''}"><input type="radio" name="q_${esc(s.id)}_${i}" value="${k}">${esc(o.label)}</label>`).join('')}</div>
+          </div>`).join('')}
+      </div>`).join('')}
+    <div id="t-msg"></div>
+    <div class="bar"><button class="btn" id="t-back">← 처음으로</button><span class="spacer"></span><button class="btn pri lg" id="t-submit">결과 보기</button></div>`;
+  scales.forEach(updateSkip);
+  el.querySelectorAll('.q-opts label').forEach(lab => lab.addEventListener('click', e => {
+    e.preventDefault();
+    const sEl = lab.closest('.q-scale'), iEl = lab.closest('.q-item');
+    if (iEl.classList.contains('skipped')) return;
+    const sid = sEl.dataset.scale, i = Number(iEl.dataset.i), k = Number(lab.querySelector('input').value);
+    test.answers[sid][i] = k;
+    iEl.querySelectorAll('label').forEach(l => l.classList.toggle('sel', l === lab));
+    iEl.classList.remove('missing');
+    updateSkip(config.scales.find(s => s.id === sid));
+  }));
+  $('#t-back').onclick = () => { if (confirm('입력한 응답이 지워집니다. 처음으로 돌아갈까요?')) { test.stage = 'info'; renderTest(); } };
+  $('#t-submit').onclick = submitTest;
+}
+function updateSkip(scale) {
+  const eff = effectiveAnswers(scale, test.answers[scale.id]);
+  const sEl = document.querySelector(`.q-scale[data-scale="${CSS.escape(scale.id)}"]`); if (!sEl) return;
+  sEl.querySelectorAll('.q-item').forEach((iEl, i) => iEl.classList.toggle('skipped', eff[i] === -2));
+}
+function submitTest() {
+  let first = null, cnt = 0;
+  config.scales.filter(s => s.id in test.answers).forEach(s => {
+    effectiveAnswers(s, test.answers[s.id]).forEach((k, i) => {
+      if (k === -1) { cnt++; const iEl = document.querySelector(`.q-scale[data-scale="${CSS.escape(s.id)}"] .q-item[data-i="${i}"]`); iEl.classList.add('missing'); if (!first) first = iEl; }
+    });
+  });
+  if (cnt) { $('#t-msg').innerHTML = `<div class="msg err">응답하지 않은 문항이 ${cnt}개 있습니다. 표시된 문항에 답해 주세요.</div>`; first.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const p = test.person;
+  const person = { name: p.name.trim(), gender: p.gender, age: p.age, region: p.region === '__etc' ? p.regionEtc.trim() : p.region };
+  if (PUBLIC) person.phone = String(p.phone).replace(/[^0-9]/g, '');
+  const snap = buildSnapshot(config, person, test.answers);
+  if (PUBLIC) {
+    const payload = sheetPayload(snap);
+    showReport(snap, () => { newTest(); renderTest(); window.scrollTo(0, 0); });
+    sendResult(payload);
+    return;
+  }
+  records.unshift({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 6), snap });
+  saveRecords();
+  showReport(snap, () => { newTest(); renderTest(); window.scrollTo(0, 0); });
+}
+
+/* ---- 참여자 화면: 센터 구글시트로 결과 보내기 ---- */
+let sendQ = PUBLIC ? (lsLoad('mhs_pub_sendq') || []) : [];
+function sheetPayload(snap) {
+  return { action: 'submit', cid: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), source: '참여자', submittedAt: snap.date,
+    person: snap.person, consent: true, total: snap.total,
+    scales: snap.scales.map(s => ({ id: s.id, name: s.shortName || s.name, method: s.method, score: s.score, label: s.label, level: s.level, answers: s.answers })) };
+}
+async function postResult(payload) {
+  const r = await fetch(config.api, { method: 'POST', body: JSON.stringify(payload) });
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || '전송 오류'); return j;
+}
+function ovStatus(html) { const el = $('#ov-status'); if (el) el.innerHTML = html; }
+async function sendResult(payload) {
+  ovStatus('센터로 전송 중…');
+  try { await postResult(payload); ovStatus('✓ 결과가 센터에 전달되었습니다'); }
+  catch (e) {
+    sendQ.push(payload); lsSave('mhs_pub_sendq', sendQ);
+    ovStatus('⚠ 인터넷 연결이 불안정해 센터에 아직 전달되지 않았습니다. <button class="btn sm" id="ov-retry">다시 보내기</button>');
+    const b = $('#ov-retry'); if (b) b.onclick = async () => { ovStatus('다시 보내는 중…'); await flushSendQ(); ovStatus(sendQ.length ? '⚠ 아직 전달되지 않았습니다. 인터넷 연결을 확인한 뒤 이 화면을 다시 열어 주세요.' : '✓ 결과가 센터에 전달되었습니다'); };
+  }
+}
+async function flushSendQ() {
+  if (!sendQ.length || !config.api) return;
+  const rest = [];
+  for (const p of sendQ) { try { await postResult(p); } catch (e) { rest.push(p); } }
+  sendQ = rest; lsSave('mhs_pub_sendq', sendQ);
+}
+
+/* =====================================================================
+   2) 엑셀 일괄처리
+   ===================================================================== */
+let batch = null;
+function defaultMap() {
+  const m = { info: clone(config.infoColumns), scales: {}, use: {} };
+  config.scales.forEach(s => { const cols = s.items.map(it => it.col || ''); m.scales[s.id] = cols.every(c => c) ? colsToStr(cols) : cols.filter(Boolean).join(','); m.use[s.id] = s.enabled && cols.every(c => c); });
+  return m;
+}
+function renderBatch() {
+  const el = $('#tab-batch');
+  if (typeof XLSX === 'undefined') { el.innerHTML = '<div class="msg err">엑셀 처리 기능을 불러오지 못했습니다.</div>'; return; }
+  if (!batch) {
+    el.innerHTML = `
+    <div class="card">
+      <h3>구글시트 응답 파일 불러오기</h3>
+      <p class="hint">구글시트에서 <b>파일 → 다운로드 → Microsoft Excel(.xlsx)</b> 또는 CSV로 내려받은 파일을 넣으세요. 모든 응답자의 점수·판정·총결과를 한 번에 계산하고, 결과지를 일괄 인쇄(PDF 저장)할 수 있습니다. 파일은 이 PC 안에서만 처리되며 어디로도 전송되지 않습니다.</p>
+      <div class="drop" id="drop">파일을 여기로 끌어다 놓거나 <label class="btn pri" style="display:inline-block;margin-left:6px">파일 선택<input type="file" id="b-file" accept=".xlsx,.xls,.csv" hidden></label></div>
+    </div>`;
+    const drop = $('#drop');
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) loadBatchFile(e.dataTransfer.files[0]); });
+    $('#b-file').addEventListener('change', e => { if (e.target.files[0]) loadBatchFile(e.target.files[0]); });
+    return;
+  }
+  const b = batch, m = b.map;
+  const header = b.hasHeader ? (b.rows[0] || []) : [];
+  const hName = c => { const i = colToIdx(c); return i < 0 ? '⚠ 잘못된 열' : (header[i] != null && header[i] !== '' ? String(header[i]) : '(제목 없음)'); };
+  const dataCount = b.rows.length - (b.hasHeader ? 1 : 0);
+  el.innerHTML = `
+  <div class="card">
+    <div class="bar"><b>📄 ${esc(b.fileName)}</b>
+      ${b.wb.SheetNames.length > 1 ? `<select id="b-sheet">${b.wb.SheetNames.map(n => `<option ${n === b.sheet ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
+      <label class="chk"><input type="checkbox" id="b-hdr" ${b.hasHeader ? 'checked' : ''}> 첫 행은 제목</label>
+      <span class="hint">응답 ${dataCount}행</span><span class="spacer"></span>
+      <button class="btn" id="b-reset">다른 파일</button></div>
+  </div>
+  <div class="card">
+    <h3>열 위치 확인</h3>
+    <p class="hint">열 문자로 적어 주세요. 연속된 열은 <b>L-T</b>, 떨어진 열은 <b>U-W,Y,Z</b>처럼 쓰면 됩니다. 오른쪽에 그 열의 제목이 보이니 맞는지 확인하세요.</p>
+    <table class="t"><tr><th style="width:150px">항목</th><th style="width:170px">열</th><th>파일의 열 제목</th></tr>
+      ${[['name', '이름'], ['gender', '성별'], ['age', '연령대'], ['region', '거주지']].map(([k, lbl]) => `
+        <tr><td>${lbl}</td><td><input type="text" class="md" data-info="${k}" value="${esc(m.info[k] || '')}"></td><td class="hint">${m.info[k] ? esc(hName(m.info[k])) : '(사용 안 함)'}</td></tr>`).join('')}
+      ${config.scales.map(s => {
+        const cols = parseCols(m.scales[s.id]);
+        const okCount = cols.length === s.items.length;
+        return `<tr><td><label class="chk"><input type="checkbox" data-use="${esc(s.id)}" ${m.use[s.id] ? 'checked' : ''}> ${esc(s.shortName || s.name)}</label></td>
+          <td><input type="text" class="md" data-scols="${esc(s.id)}" value="${esc(m.scales[s.id] || '')}" ${m.use[s.id] ? '' : 'disabled'}></td>
+          <td class="hint">${m.use[s.id] ? `${okCount ? '✅' : '⚠'} ${cols.length}개 열 / 문항 ${s.items.length}개${okCount ? '' : ' — 개수가 맞지 않습니다'}
+            <details><summary>열 제목 보기</summary>${cols.map((c, i) => `${esc(c)} → ${esc(hName(c))}${s.items[i] ? '' : ''}`).join('<br>')}</details>` : '(계산 안 함)'}</td></tr>`;
+      }).join('')}
+    </table>
+    <div class="bar"><button class="btn" id="b-savemap">이 열 위치를 기본값으로 저장</button><span class="spacer"></span><button class="btn pri" id="b-run">계산하기</button></div>
+    <div id="b-msg">${b.msg || ''}</div>
+  </div>
+  ${b.results ? renderBatchResults() : ''}`;
+
+  el.querySelectorAll('[data-info]').forEach(i => i.addEventListener('change', () => { m.info[i.dataset.info] = i.value.trim().toUpperCase(); renderBatch(); }));
+  el.querySelectorAll('[data-scols]').forEach(i => i.addEventListener('change', () => { m.scales[i.dataset.scols] = i.value.trim().toUpperCase(); renderBatch(); }));
+  el.querySelectorAll('[data-use]').forEach(i => i.addEventListener('change', () => { m.use[i.dataset.use] = i.checked; renderBatch(); }));
+  if ($('#b-sheet')) $('#b-sheet').onchange = e => { b.sheet = e.target.value; readSheet(); b.results = null; renderBatch(); };
+  $('#b-hdr').onchange = e => { b.hasHeader = e.target.checked; b.results = null; renderBatch(); };
+  $('#b-reset').onclick = () => { batch = null; renderBatch(); };
+  $('#b-savemap').onclick = () => {
+    config.infoColumns = clone(m.info);
+    config.scales.forEach(s => { const cols = parseCols(m.scales[s.id]); if (m.use[s.id] && cols.length === s.items.length) s.items.forEach((it, i) => it.col = cols[i]); });
+    lsSave(LS_CFG, config); draft = clone(config); dirty = false;
+    b.msg = '<div class="msg ok">열 위치를 기본값으로 저장했습니다.</div>'; renderBatch();
+  };
+  $('#b-run').onclick = runBatch;
+  if (b.results) bindBatchResults();
+}
+function loadBatchFile(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const wb = XLSX.read(new Uint8Array(fr.result), { type: 'array', cellDates: true });
+      batch = { fileName: file.name, wb, sheet: wb.SheetNames[0], rows: [], hasHeader: true, map: defaultMap(), results: null, filter: '', msg: '' };
+      readSheet(); renderBatch();
+    } catch (e) { alert('파일을 읽지 못했습니다: ' + e.message); }
+  };
+  fr.readAsArrayBuffer(file);
+}
+function readSheet() {
+  const ws = batch.wb.Sheets[batch.sheet];
+  batch.rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false });
+}
+function runBatch() {
+  const b = batch, m = b.map, errs = [];
+  const used = config.scales.filter(s => m.use[s.id]).map(s => ({ s, cols: parseCols(m.scales[s.id]).map(colToIdx) }));
+  used.forEach(u => { if (u.cols.length !== u.s.items.length || u.cols.some(c => c < 0)) errs.push(`${u.s.shortName || u.s.name}: 열 개수(${u.cols.length})가 문항 수(${u.s.items.length})와 다르거나 잘못된 열이 있습니다.`); });
+  if (!used.length) errs.push('계산할 척도를 하나 이상 선택해 주세요.');
+  if (errs.length) { b.msg = `<div class="msg err">${errs.map(esc).join('<br>')}</div>`; b.results = null; renderBatch(); return; }
+  const ic = {}; for (const k of ['name', 'gender', 'age', 'region']) ic[k] = colToIdx(m.info[k]);
+  const start = b.hasHeader ? 1 : 0, out = [], unmatched = {};
+  for (let r = start; r < b.rows.length; r++) {
+    const row = b.rows[r];
+    const get = i => i >= 0 && row[i] != null ? String(row[i]).trim() : '';
+    const person = { name: get(ic.name), gender: get(ic.gender), age: get(ic.age), region: get(ic.region) };
+    const answers = {}; let any = false;
+    used.forEach(u => {
+      answers[u.s.id] = u.cols.map((c, i) => {
+        let raw = get(c); if (raw === '(해당없음)') raw = ''; if (raw) any = true;
+        const k = matchOption(u.s.items[i], raw);
+        if (raw && k < 0) { const key = `${u.s.shortName || u.s.name} ${idxToCol(c)}열: "${raw}"`; unmatched[key] = (unmatched[key] || 0) + 1; }
+        return k;
+      });
+    });
+    if (!any && !person.name) continue;
+    out.push({ row: r, snap: buildSnapshot(config, person, answers, today()), sel: true });
+  }
+  b.results = out; b.usedIds = used.map(u => u.s.id);
+  const um = Object.entries(unmatched);
+  b.msg = `<div class="msg ok">${out.length}명 계산 완료.</div>` + (um.length ? `<div class="msg err"><b>보기와 맞지 않아 점수에 넣지 못한 응답</b> (척도 관리에서 보기 문구를 확인하세요)<br>${um.slice(0, 15).map(([k, n]) => esc(k) + ` — ${n}건`).join('<br>')}${um.length > 15 ? `<br>외 ${um.length - 15}종` : ''}</div>` : '');
+  renderBatch();
+}
+function filteredResults() { const f = batch.filter; return batch.results.filter(x => !f || (x.snap.total && x.snap.total.level === f)); }
+function renderBatchResults() {
+  const b = batch, list = filteredResults();
+  const sc = config.scales.filter(s => b.usedIds.includes(s.id));
+  const cnt = l => b.results.filter(x => x.snap.total && x.snap.total.level === l).length;
+  return `
+  <div class="card">
+    <h3>계산 결과</h3>
+    <div class="bar">
+      <select id="b-filter"><option value="">전체 (${b.results.length})</option>${LEVELS.map(l => `<option value="${l}" ${b.filter === l ? 'selected' : ''}>총결과 ${l === '위험' ? '고위험' : l} (${cnt(l)})</option>`).join('')}</select>
+      <span class="spacer"></span>
+      <button class="btn" id="b-print-sel">선택 결과지 인쇄</button>
+      <button class="btn" id="b-print-all">목록 전체 인쇄</button>
+      <button class="btn pri" id="b-xlsx">결과 엑셀 저장</button>
+    </div>
+    <div class="tbl-wrap"><table class="t">
+      <tr><th><input type="checkbox" id="b-all" checked></th><th>행</th><th>이름</th><th>성별</th><th>연령대</th><th>거주지</th>${sc.map(s => `<th>${esc(s.shortName || s.name)}</th>`).join('')}<th>총결과</th><th></th></tr>
+      ${list.map(x => { const i = b.results.indexOf(x), sn = x.snap; return `<tr>
+        <td><input type="checkbox" data-sel="${i}" ${x.sel ? 'checked' : ''}></td><td>${x.row + 1}</td>
+        <td>${esc(sn.person.name)}</td><td>${esc(sn.person.gender)}</td><td>${esc(sn.person.age)}</td><td>${esc(sn.person.region)}</td>
+        ${sc.map(s => { const r = sn.scales.find(y => y.id === s.id); return `<td>${r ? `${s.method === 'sum' ? esc(r.score) + ' ' : ''}<span class="badge b-${esc(r.level)}">${esc(s.method === 'sum' ? r.level : r.label)}</span>${r.missing ? ` <span class="hint">미응답${r.missing}</span>` : ''}` : '<span class="hint">-</span>'}</td>`; }).join('')}
+        <td>${sn.total ? `<span class="badge t-${esc(sn.total.level)}">${esc(sn.total.label)}</span>` : '-'}</td>
+        <td><button class="btn sm" data-view="${i}">보기</button></td></tr>`; }).join('')}
+    </table></div>
+  </div>`;
+}
+function bindBatchResults() {
+  const b = batch;
+  $('#b-filter').onchange = e => { b.filter = e.target.value; renderBatch(); };
+  $('#b-all').onchange = e => { filteredResults().forEach(x => x.sel = e.target.checked); renderBatch(); };
+  document.querySelectorAll('[data-sel]').forEach(c => c.onchange = () => { b.results[Number(c.dataset.sel)].sel = c.checked; });
+  document.querySelectorAll('[data-view]').forEach(c => c.onclick = () => showReport(b.results[Number(c.dataset.view)].snap));
+  $('#b-print-sel').onclick = () => printReports(filteredResults().filter(x => x.sel).map(x => x.snap));
+  $('#b-print-all').onclick = () => printReports(filteredResults().map(x => x.snap));
+  $('#b-xlsx').onclick = exportBatch;
+}
+function exportBatch() {
+  const b = batch, sc = config.scales.filter(s => b.usedIds.includes(s.id));
+  const extraHead = []; sc.forEach(s => { const n = s.shortName || s.name; if (s.method === 'sum') extraHead.push(n + ' 점수', n + ' 단계'); else extraHead.push(n + ' 결과', n + ' 단계'); });
+  extraHead.push('총결과');
+  const width = Math.max(...b.rows.map(r => r.length));
+  const pad = r => { const a = r.slice(); while (a.length < width) a.push(''); return a; };
+  const byRow = {}; b.results.forEach(x => byRow[x.row] = x.snap);
+  const aoa = [];
+  b.rows.forEach((r, i) => {
+    if (b.hasHeader && i === 0) { aoa.push(pad(r).concat(extraHead)); return; }
+    const sn = byRow[i]; const ext = [];
+    sc.forEach(s => { const y = sn && sn.scales.find(z => z.id === s.id); if (!y) ext.push('', ''); else if (s.method === 'sum') ext.push(y.score, y.level); else ext.push(y.label, y.level); });
+    ext.push(sn && sn.total ? sn.total.label : '');
+    aoa.push(pad(r).concat(ext));
+  });
+  if (!b.hasHeader) aoa.unshift(new Array(width).fill('').concat(extraHead));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '결과');
+  saveWb(wb, b.fileName.replace(/\.(xlsx|xls|csv)$/i, '') + '_결과_' + fileStamp() + '.xlsx');
+}
+
+/* =====================================================================
+   3) 검사 기록
+   ===================================================================== */
+let recSel = new Set(), recMsg = '';
+// 다른 기기에서 '엑셀로 내려받기' 한 검사 기록 파일을 이 기기 기록에 합치기
+function importRecords(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const wb = XLSX.read(new Uint8Array(fr.result), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+      const head = (rows[0] || []).map(h => String(h).trim());
+      const hi = n => head.indexOf(n);
+      if (hi('검사일시') < 0 || hi('이름') < 0) throw new Error('‘검사 기록 → 엑셀로 내려받기’로 만든 파일이 아닙니다. 구글폼 응답 파일은 ‘엑셀 일괄처리’를 이용하세요.');
+      const notes = [], plan = [];
+      config.scales.forEach(s => {
+        const n = s.shortName || s.name;
+        const cols = s.items.map((_, i) => hi(`${n} ${i + 1}`));
+        const found = cols.filter(c => c >= 0).length;
+        if (!found) return;
+        if (found !== s.items.length || hi(`${n} ${s.items.length + 1}`) >= 0) { notes.push(`${n}: 파일의 문항 수가 현재 설정(${s.items.length}문항)과 달라 제외했습니다.`); return; }
+        plan.push({ s, cols });
+      });
+      const known = new Set(plan.map(x => x.s.shortName || x.s.name));
+      const other = new Set(head.map(h => (h.match(/^(.+) \d+$/) || [])[1]).filter(Boolean).filter(n => !known.has(n) && !notes.some(t => t.startsWith(n + ':'))));
+      other.forEach(n => notes.push(`${n}: 이 기기 설정에 없는 척도라 제외했습니다.`));
+      if (!plan.length) throw new Error('이 기기 설정과 맞는 척도가 파일에 없습니다.');
+      const keyOf = sn => [sn.date, sn.person.name, sn.person.gender, sn.person.age, sn.person.region].join('|');
+      const have = new Set(records.map(r => keyOf(r.snap)));
+      let added = 0, dup = 0, unmatched = 0;
+      rows.slice(1).forEach((row, ri) => {
+        const get = i => i >= 0 && row[i] != null ? String(row[i]).trim() : '';
+        const person = { name: get(hi('이름')), gender: get(hi('성별')), age: get(hi('연령대')), region: get(hi('거주지')) };
+        const answers = {}; let any = false;
+        plan.forEach(({ s, cols }) => {
+          answers[s.id] = cols.map((c, i) => { let raw = get(c); if (raw === '(해당없음)') raw = '';
+            if (raw) any = true; const k = matchOption(s.items[i], raw); if (raw && k < 0) unmatched++; return k; });
+        });
+        if (!any) return;
+        const snap = buildSnapshot(config, person, answers, get(hi('검사일시')) || today());
+        if (have.has(keyOf(snap))) { dup++; return; }
+        have.add(keyOf(snap));
+        records.push({ id: Date.now() + '_' + ri + '_' + Math.random().toString(36).slice(2, 6), snap, imported: file.name });
+        added++;
+      });
+      records.sort((a, b) => String(b.snap.date).localeCompare(String(a.snap.date)));
+      saveRecords();
+      recMsg = `<div class="msg ok">${esc(file.name)}: ${added}건을 합쳤습니다.${dup ? ` (이미 있는 기록 ${dup}건은 건너뜀)` : ''} 결과는 이 기기의 현재 척도 설정으로 다시 계산했습니다.</div>`
+        + (notes.length || unmatched ? `<div class="msg err">${notes.map(esc).join('<br>')}${unmatched ? `${notes.length ? '<br>' : ''}보기 문구와 맞지 않아 점수에 넣지 못한 응답 ${unmatched}개가 있습니다. 두 기기의 척도 설정이 같은지 확인하세요.` : ''}</div>` : '');
+    } catch (err) { recMsg = `<div class="msg err">불러오지 못했습니다: ${esc(err.message)}</div>`; }
+    renderRecords();
+  };
+  fr.readAsArrayBuffer(file);
+}
+function renderRecords() {
+  const el = $('#tab-records');
+  el.innerHTML = `
+  <div class="card">
+    <h3>검사 기록 (${records.length}건)</h3>
+    <p class="hint">‘검사하기’로 실시한 결과가 이 기기에 저장됩니다. 민감한 정보이므로 공용 기기라면 정기적으로 엑셀로 내려받은 뒤 삭제해 주세요. 결과지는 검사 당시 기준으로 다시 출력됩니다.<br>
+    패드 등 다른 기기에서 ‘엑셀로 내려받기’ 한 파일은 <b>다른 기기 기록 불러오기</b>로 이곳에 합칠 수 있습니다. 이미 있는 기록은 중복으로 들어가지 않습니다.</p>
+    <div class="bar">
+      <button class="btn pri" id="r-xlsx" ${records.length ? '' : 'disabled'}>엑셀로 내려받기</button>
+      <button class="btn" id="r-print" ${records.length ? '' : 'disabled'}>선택 결과지 인쇄</button>
+      <label class="btn">다른 기기 기록 불러오기<input type="file" id="r-import" accept=".xlsx,.xls,.csv" hidden></label>
+      <span class="spacer"></span>
+      <button class="btn danger" id="r-del" ${records.length ? '' : 'disabled'}>선택 삭제</button>
+    </div>
+    ${recMsg}
+    ${records.length ? `<div class="tbl-wrap"><table class="t">
+      <tr><th><input type="checkbox" id="r-all"></th><th>검사일시</th><th>이름</th><th>성별</th><th>연령대</th><th>거주지</th><th>검사 결과</th><th>총결과</th><th></th></tr>
+      ${records.map(r => { const sn = r.snap; return `<tr>
+        <td><input type="checkbox" data-rsel="${esc(r.id)}" ${recSel.has(r.id) ? 'checked' : ''}></td>
+        <td>${esc(sn.date)}</td><td>${esc(sn.person.name)}</td><td>${esc(sn.person.gender)}</td><td>${esc(sn.person.age)}</td><td>${esc(sn.person.region)}</td>
+        <td>${sn.scales.map(s => `${esc(s.shortName || s.name)} ${s.method === 'sum' ? esc(s.score) + ' ' : ''}<span class="badge b-${esc(s.level)}">${esc(s.method === 'sum' ? s.level : s.label)}</span>`).join('<br>')}</td>
+        <td>${sn.total ? `<span class="badge t-${esc(sn.total.level)}">${esc(sn.total.label)}</span>` : '-'}</td>
+        <td><button class="btn sm" data-rview="${esc(r.id)}">보기</button></td></tr>`; }).join('')}
+    </table></div>` : '<div class="msg info">아직 검사 기록이 없습니다.</div>'}
+  </div>`;
+  $('#r-import').onchange = e => { if (e.target.files[0]) importRecords(e.target.files[0]); };
+  if (!records.length) return;
+  $('#r-all').onchange = e => { recSel = e.target.checked ? new Set(records.map(r => r.id)) : new Set(); renderRecords(); };
+  el.querySelectorAll('[data-rsel]').forEach(c => c.onchange = () => { c.checked ? recSel.add(c.dataset.rsel) : recSel.delete(c.dataset.rsel); });
+  el.querySelectorAll('[data-rview]').forEach(c => c.onclick = () => showReport(records.find(r => r.id === c.dataset.rview).snap));
+  $('#r-print').onclick = () => printReports(records.filter(r => recSel.has(r.id)).map(r => r.snap));
+  $('#r-del').onclick = () => {
+    if (!recSel.size) { alert('삭제할 기록을 선택해 주세요.'); return; }
+    if (!confirm(`선택한 ${recSel.size}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    records = records.filter(r => !recSel.has(r.id)); recSel = new Set(); saveRecords(); renderRecords();
+  };
+  $('#r-xlsx').onclick = exportRecords;
+}
+function exportRecords() {
+  const ids = [], meta = {};
+  records.slice().reverse().forEach(r => r.snap.scales.forEach(s => { if (!meta[s.id]) { ids.push(s.id); meta[s.id] = { name: s.shortName || s.name, method: s.method, n: s.answers.length }; } else meta[s.id].n = Math.max(meta[s.id].n, s.answers.length); }));
+  const head = ['검사일시', '이름', '성별', '연령대', '거주지'];
+  ids.forEach(id => { const m = meta[id]; for (let i = 0; i < m.n; i++) head.push(`${m.name} ${i + 1}`); head.push(m.method === 'sum' ? m.name + ' 점수' : m.name + ' 결과', m.name + ' 단계'); });
+  head.push('총결과');
+  const aoa = [head];
+  records.forEach(r => {
+    const sn = r.snap, row = [sn.date, sn.person.name, sn.person.gender, sn.person.age, sn.person.region];
+    ids.forEach(id => { const m = meta[id], s = sn.scales.find(x => x.id === id);
+      for (let i = 0; i < m.n; i++) row.push(s ? (s.answers[i] || '') : '');
+      row.push(s ? (s.method === 'sum' ? s.score : s.label) : '', s ? s.level : ''); });
+    row.push(sn.total ? sn.total.label : '');
+    aoa.push(row);
+  });
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '검사기록');
+  saveWb(wb, '자가검진_검사기록_' + fileStamp() + '.xlsx');
+}
+
+/* =====================================================================
+   4) 척도·설정 관리 (draft 를 고치고 '저장'으로 확정)
+   ===================================================================== */
+function getPath(o, p) { return p.split('.').reduce((a, k) => a[k], o); }
+function setPath(o, p, v) { const ks = p.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; }
+function markDirty() { if (!dirty) { dirty = true; const b = $('#save-bar'); if (b) b.hidden = false; } }
+const lvlSelect = (path, val) => `<select data-bind="${path}">${LEVELS.map(l => `<option ${val === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+const inp = (path, val, cls = '', ph = '') => `<input type="text" class="${cls}" data-bind="${path}" value="${esc(val)}" placeholder="${esc(ph)}">`;
+const num = (path, val, cls = 'sm') => `<input type="number" class="${cls}" data-bind="${path}" data-type="num" value="${esc(val)}">`;
+const area = (path, val, ph = '') => `<textarea data-bind="${path}" placeholder="${esc(ph)}">${esc(val)}</textarea>`;
+const act = (a, label, data = {}, cls = 'sm') => `<button class="btn ${cls}" data-act="${a}" ${Object.entries(data).map(([k, v]) => `data-${k}="${esc(v)}"`).join(' ')}>${label}</button>`;
+
+function renderSettings() {
+  const el = $('#tab-settings');
+  if (selScale >= draft.scales.length) selScale = Math.max(0, draft.scales.length - 1);
+  const subs = [['scales', '척도'], ['total', '총결과 판정'], ['regions', '거주지 연락처'], ['basic', '기본 설정'], ['file', '설정 파일']];
+  let body = '';
+  if (setSub === 'scales') body = renderScaleEditor();
+  else if (setSub === 'total') body = renderTotalEditor();
+  else if (setSub === 'regions') body = renderRegionEditor();
+  else if (setSub === 'basic') body = renderBasicEditor();
+  else body = renderFileEditor();
+  el.innerHTML = `
+    <div class="save-bar" id="save-bar" ${dirty ? '' : 'hidden'}>
+      <b>저장하지 않은 변경사항이 있습니다.</b><span class="spacer"></span>
+      <button class="btn" data-act="revert">되돌리기</button><button class="btn pri" data-act="save">저장</button>
+    </div>
+    <div class="set-nav">${subs.map(([k, l]) => `<button data-sub="${k}" class="${setSub === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    ${body}`;
+}
+function renderScaleEditor() {
+  const list = `<div class="scale-list">
+      ${draft.scales.map((s, i) => `<button data-sel-scale="${i}" class="${i === selScale ? 'on' : ''}">${esc(s.name || '(이름 없음)')}<br><span class="off">${s.enabled ? '사용 중' : '사용 안 함'} · ${s.items.length}문항</span></button>`).join('')}
+      <div class="bar">${act('addScale', '+ 새 척도', {}, '')}</div>
+    </div>`;
+  const s = draft.scales[selScale];
+  if (!s) return `<div class="ed-grid">${list}<div class="card">척도가 없습니다. 새 척도를 추가하세요.</div></div>`;
+  const P = `scales.${selScale}`;
+  const items = s.items.map((it, i) => `
+    <div class="item-ed">
+      <div class="item-head">${i + 1}번 문항 <span class="hint" style="font-weight:400">엑셀 열</span> ${inp(`${P}.items.${i}.col`, it.col, 'sm', '예: L')}
+        <span class="spacer"></span>${act('mvItem', '▲', { i, d: -1 })}${act('mvItem', '▼', { i, d: 1 })}${act('delItem', '삭제', { i }, 'sm danger')}</div>
+      ${area(`${P}.items.${i}.text`, it.text, '문항 내용')}
+      ${it.options.map((o, k) => `<div class="opt-row"><span class="hint">보기 ${k + 1}</span>
+        ${inp(`${P}.items.${i}.options.${k}.label`, o.label, '', '보기 문구 (구글폼 선택지와 같게)')}
+        <span class="hint">점수</span>${num(`${P}.items.${i}.options.${k}.score`, o.score)}
+        <label class="chk hint"><input type="checkbox" data-bind="${P}.items.${i}.options.${k}.skip" ${o.skip ? 'checked' : ''}> 이 답이면 이 척도의 나머지 문항 건너뜀</label>
+        ${act('delOpt', '×', { i, k }, 'sm danger')}</div>`).join('')}
+      <div class="bar">${act('addOpt', '+ 보기 추가', { i })}</div>
+    </div>`).join('');
+
+  let judge;
+  if (s.method === 'sum') {
+    judge = `<h4>점수 구간</h4>
+      <p class="hint">총점이 ‘최소 점수’ 이상인 구간 중 가장 높은 구간이 적용됩니다. 이 척도의 점수 범위: 0 ~ ${maxScore(s)}점</p>
+      <table class="t"><tr><th style="width:90px">최소 점수</th><th style="width:90px">단계</th><th>결과지 코멘트</th><th style="width:50px"></th></tr>
+      ${s.levels.map((l, j) => `<tr><td>${num(`${P}.levels.${j}.min`, l.min)}</td><td>${lvlSelect(`${P}.levels.${j}.level`, l.level)}</td><td>${area(`${P}.levels.${j}.desc`, l.desc)}</td><td>${act('delLevel', '×', { j }, 'sm danger')}</td></tr>`).join('')}
+      </table><div class="bar">${act('addLevel', '+ 구간 추가')}</div>`;
+  } else {
+    const itemOpts = sel => s.items.map((it, i) => `<option value="${i}" ${sel === i ? 'selected' : ''}>${i + 1}번: ${esc(it.text.slice(0, 22))}${it.text.length > 22 ? '…' : ''}</option>`).join('');
+    judge = `<h4>판정 규칙</h4>
+      <p class="hint">위 규칙부터 차례로 확인해서 <b>처음으로 맞는 규칙</b>의 결과를 씁니다. 건너뛴 문항은 조건에 해당하지 않는 것으로 봅니다.</p>
+      ${s.rules.map((r, j) => `<div class="rule-ed">
+        <div class="item-head">규칙 ${j + 1}
+          <select data-bind="${P}.rules.${j}.match"><option value="any" ${r.match !== 'all' ? 'selected' : ''}>아래 조건 중 하나라도 맞으면</option><option value="all" ${r.match === 'all' ? 'selected' : ''}>아래 조건이 모두 맞으면</option></select>
+          <span class="spacer"></span>${act('mvRule', '▲', { j, d: -1 })}${act('mvRule', '▼', { j, d: 1 })}${act('delRule', '삭제', { j }, 'sm danger')}</div>
+        ${r.conds.map((c, ci) => { const it = s.items[c.item]; return `<div class="cond-row">
+          <select data-bind="${P}.rules.${j}.conds.${ci}.item" data-type="num" data-rerender="1">${itemOpts(c.item)}</select>
+          <span class="hint">의 답이</span>
+          ${it ? it.options.map((o, k) => `<label class="chk"><input type="checkbox" data-act="togAns" data-j="${j}" data-ci="${ci}" data-k="${k}" ${c.answers.includes(k) ? 'checked' : ''}>${esc(o.label)}</label>`).join(' ') : '<span class="hint">⚠ 없는 문항</span>'}
+          <span class="hint">이면</span>${act('delCond', '×', { j, ci }, 'sm danger')}</div>`; }).join('')}
+        <div class="bar">${act('addCond', '+ 조건 추가', { j })}</div>
+        <div class="row">
+          <label class="f" style="flex:2">결과 문구 ${inp(`${P}.rules.${j}.label`, r.label)}</label>
+          <label class="f" style="flex:1">단계 ${lvlSelect(`${P}.rules.${j}.level`, r.level)}</label>
+        </div>
+        <label class="f">결과지 코멘트 ${area(`${P}.rules.${j}.desc`, r.desc)}</label>
+      </div>`).join('')}
+      <div class="bar">${act('addRule', '+ 규칙 추가')}</div>
+      <div class="rule-ed"><div class="item-head">어떤 규칙에도 해당하지 않을 때</div>
+        <div class="row"><label class="f" style="flex:2">결과 문구 ${inp(`${P}.default.label`, s.default.label)}</label><label class="f" style="flex:1">단계 ${lvlSelect(`${P}.default.level`, s.default.level)}</label></div>
+        <label class="f">결과지 코멘트 ${area(`${P}.default.desc`, s.default.desc)}</label></div>`;
+  }
+
+  return `<div class="ed-grid">${list}
+    <div>
+      <div class="card">
+        <div class="bar"><h3 style="margin:0">척도 정보</h3><span class="spacer"></span>
+          <label class="chk"><input type="checkbox" data-bind="${P}.enabled" data-rerender="1" ${s.enabled ? 'checked' : ''}> 사용</label>
+          ${act('dupScale', '복제')}${act('mvScale', '▲', { d: -1 })}${act('mvScale', '▼', { d: 1 })}${act('delScale', '삭제', {}, 'sm danger')}</div>
+        <div class="row">
+          <label class="f" style="flex:2">척도 이름 (결과지 제목) ${inp(`${P}.name`, s.name, '', '예: 우울척도 (PHQ-9)')}</label>
+          <label class="f">짧은 이름 ${inp(`${P}.shortName`, s.shortName, '', '예: 우울척도')}</label>
+          <label class="f">판정 방식 <select data-bind="${P}.method" data-rerender="1"><option value="sum" ${s.method === 'sum' ? 'selected' : ''}>점수 합산 + 구간</option><option value="rules" ${s.method === 'rules' ? 'selected' : ''}>응답 조건 규칙 (P-4 방식)</option></select></label>
+        </div>
+        <p class="hint">결과지 문구: “※ 당신의 <b>${esc(s.shortName || s.name)}</b> ${s.method === 'sum' ? '수치는 OO 입니다.' : '평가는 OO 입니다.'}”</p>
+        <label class="f">결과지 설명문 ${area(`${P}.intro`, s.intro)}</label>
+        <label class="f" style="margin-top:8px">검사 안내문 (문항 위에 표시) ${area(`${P}.instruction`, s.instruction)}</label>
+      </div>
+      <div class="card">
+        <h3>문항 (${s.items.length}개)</h3>
+        <div class="bar">${act('addItem', '+ 문항 추가', {}, '')}${act('copyOpts', '1번 문항의 보기를 모든 문항에 복사', {}, '')}
+          <span class="spacer"></span><span class="hint">엑셀 열 순서대로 지정: 시작 열</span><input type="text" class="sm" id="startcol" placeholder="L">${act('fillCols', '적용', {}, '')}</div>
+        ${items}
+      </div>
+      <div class="card">${judge}</div>
+    </div></div>`;
+}
+function renderTotalEditor() {
+  const scOpts = sel => `<option value="*" ${sel === '*' ? 'selected' : ''}>어느 척도든</option>` + draft.scales.map(s => `<option value="${esc(s.id)}" ${sel === s.id ? 'selected' : ''}>${esc(s.shortName || s.name)}</option>`).join('');
+  return `<div class="card">
+    <h3>총결과 판정</h3>
+    <p class="hint">각 척도의 단계(양호·주의·위험)를 보고 총결과를 정합니다. 위 규칙부터 차례로 확인해서 처음 맞는 규칙을 씁니다. 응답자가 하지 않은 검사는 조건에 해당하지 않습니다. ‘단계’는 결과지 색깔(위험 = 진한 주황)을 정합니다.</p>
+    ${draft.totalRules.map((r, j) => `<div class="rule-ed">
+      <div class="item-head">규칙 ${j + 1}
+        <select data-bind="totalRules.${j}.match"><option value="any" ${r.match !== 'all' ? 'selected' : ''}>아래 조건 중 하나라도 맞으면</option><option value="all" ${r.match === 'all' ? 'selected' : ''}>아래 조건이 모두 맞으면</option></select>
+        <span class="spacer"></span>${act('mvTRule', '▲', { j, d: -1 })}${act('mvTRule', '▼', { j, d: 1 })}${act('delTRule', '삭제', { j }, 'sm danger')}</div>
+      ${r.conds.map((c, ci) => `<div class="cond-row">
+        <select data-bind="totalRules.${j}.conds.${ci}.scale">${scOpts(c.scale)}</select><span class="hint">의 단계가</span>
+        ${LEVELS.map(l => `<label class="chk"><input type="checkbox" data-act="togLvl" data-j="${j}" data-ci="${ci}" data-l="${l}" ${c.levels.includes(l) ? 'checked' : ''}>${l}</label>`).join(' ')}
+        <span class="hint">이면</span>${act('delTCond', '×', { j, ci }, 'sm danger')}</div>`).join('')}
+      <div class="bar">${act('addTCond', '+ 조건 추가', { j })}</div>
+      <div class="row"><label class="f" style="flex:2">총결과 문구 ${inp(`totalRules.${j}.label`, r.label)}</label><label class="f">단계(색) ${lvlSelect(`totalRules.${j}.level`, r.level)}</label></div>
+      <label class="f">결과지 코멘트 ${area(`totalRules.${j}.desc`, r.desc)}</label>
+    </div>`).join('')}
+    <div class="bar">${act('addTRule', '+ 규칙 추가', {}, '')}</div>
+    <div class="rule-ed"><div class="item-head">어떤 규칙에도 해당하지 않을 때</div>
+      <div class="row"><label class="f" style="flex:2">총결과 문구 ${inp('totalDefault.label', draft.totalDefault.label)}</label><label class="f">단계(색) ${lvlSelect('totalDefault.level', draft.totalDefault.level)}</label></div>
+      <label class="f">결과지 코멘트 ${area('totalDefault.desc', draft.totalDefault.desc)}</label></div>
+  </div>`;
+}
+function renderRegionEditor() {
+  return `<div class="card">
+    <h3>거주지별 정신건강복지센터</h3>
+    <p class="hint">응답자의 거주지에 따라 결과지 하단 연락처가 바뀝니다. ‘인천’, ‘구/군’, 띄어쓰기는 무시하고 비교합니다(예: “미추홀구”, “인천 미추홀” 모두 ‘미추홀’과 일치). ‘안내문만 표시’를 켜면 전화번호 칸의 문장을 그대로 보여 줍니다.</p>
+    <table class="t"><tr><th>지역 (비교용)</th><th>표시 이름</th><th>전화번호 또는 안내문</th><th>안내문만 표시</th><th></th></tr>
+    ${draft.regions.map((r, j) => `<tr><td>${inp(`regions.${j}.name`, r.name, 'md')}</td><td>${inp(`regions.${j}.display`, r.display)}</td><td>${inp(`regions.${j}.phone`, r.phone)}</td>
+      <td><input type="checkbox" data-bind="regions.${j}.message" ${r.message ? 'checked' : ''}></td><td>${act('delRegion', '×', { j }, 'sm danger')}</td></tr>`).join('')}
+    </table><div class="bar">${act('addRegion', '+ 지역 추가', {}, '')}</div></div>`;
+}
+function renderBasicEditor() {
+  const ic = draft.infoColumns;
+  return `<div class="card">
+    <h3>기본 설정</h3>
+    <div class="row">
+      <label class="f">기관명 (결과지 상단에 표시, 비워도 됨) ${inp('orgName', draft.orgName)}</label>
+      <label class="f">위기상담전화 ${inp('hotline', draft.hotline)}</label>
+    </div>
+    <label class="f" style="margin-top:10px">결과지 하단 안내문 ${area('footer', draft.footer)}</label>
+    <h4>검사하기 화면의 선택지</h4>
+    <div class="row">
+      <label class="f">성별 (쉼표로 구분) <input type="text" data-bind="genders" data-type="list" value="${esc(draft.genders.join(', '))}"></label>
+      <label class="f" style="flex:2">연령대 (쉼표로 구분) <input type="text" data-bind="ages" data-type="list" value="${esc(draft.ages.join(', '))}"></label>
+    </div>
+    <h4>참여자 화면 (QR·링크로 하는 검사)</h4>
+    <label class="f">결과를 받을 구글시트 웹 앱 주소 ${inp('api', draft.api || '', '', 'https://script.google.com/macros/s/.../exec')}</label>
+    <label class="f" style="margin-top:8px">개인정보 수집·이용 동의 문구 ${area('consentText', draft.consentText || '')}</label>
+    <p class="hint">이 두 가지는 참여자 화면에서만 쓰입니다. 이 PC·패드에서 하는 검사는 지금처럼 이 기기에만 저장됩니다. 바꾼 뒤 저장하고 <b>설정 파일 → 참여자 화면에 바로 반영</b>을 누르면 적용됩니다.</p>
+    <h4>엑셀 일괄처리 기본 열</h4>
+    <div class="row">
+      <label class="f">이름 ${inp('infoColumns.name', ic.name, 'sm')}</label><label class="f">성별 ${inp('infoColumns.gender', ic.gender, 'sm')}</label>
+      <label class="f">연령대 ${inp('infoColumns.age', ic.age, 'sm')}</label><label class="f">거주지 ${inp('infoColumns.region', ic.region, 'sm')}</label>
+    </div>
+    <p class="hint">척도별 문항 열은 ‘척도’ 메뉴의 각 문항에서 지정합니다.</p>
+  </div>`;
+}
+function renderFileEditor() {
+  return `<div class="card">
+    <h3>설정 파일</h3>
+    <p class="hint">척도·판정 기준·연락처 설정은 이 PC의 이 브라우저에 저장됩니다. 다른 PC에서 같은 설정을 쓰거나 백업하려면 설정 파일로 내보낸 뒤, 그 PC에서 불러오세요. (검사 기록은 포함되지 않습니다)</p>
+    <div class="bar">${act('exportCfg', '설정 파일 내보내기', {}, 'pri')}
+      <label class="btn">설정 파일 불러오기<input type="file" id="cfg-file" accept=".json" hidden></label></div>
+    <h4>참여자 화면(QR·링크)에 반영하기</h4>
+    <p class="hint">이 기기의 척도·판정 기준·연락처·동의 문구를 참여자 화면에 그대로 적용합니다. 인터넷 연결과 <b>직원 비밀번호</b>가 필요하며, 비밀번호를 아는 직원은 누구나 할 수 있습니다. 링크와 QR은 그대로이고, 참여자가 다음에 열 때부터 새 기준으로 검사합니다.</p>
+    <div class="bar">${act('publishCfg', '참여자 화면에 바로 반영', {}, 'pri')}${act('pullCfg', '참여자 화면 설정 받아오기', {}, '')}</div>
+    <p class="hint">‘받아오기’는 다른 직원이 반영한 최신 설정을 이 기기로 가져옵니다. 반영 기록은 구글시트의 ‘척도설정 변경기록’ 탭에 남습니다.</p>
+    <h4>처음 설치할 때 한 번만</h4>
+    <p class="hint">GitHub 저장소에 올릴 <b>selfcheck-config.json</b>을 만듭니다. 참여자 화면이 구글시트 주소를 찾는 데 쓰이며, 이후 척도 수정은 위의 ‘바로 반영’으로 하면 됩니다.</p>
+    <div class="bar">${act('exportPublic', 'GitHub용 selfcheck-config.json 내보내기', {}, '')}
+      ${/^https?:$/.test(location.protocol) ? act('loadOnline', 'GitHub에 올린 설정 받아오기', {}, '') : ''}</div>
+    ${/^https?:$/.test(location.protocol) ? `<p class="hint">참여자 화면 주소: <b>${esc(new URL('p.html', location.href).toString())}</b></p>` : ''}
+    <h4>초기화</h4>
+    <p class="hint">모든 척도와 설정을 처음 상태(PHQ-9, P-4, GAD-7 꺼짐)로 되돌립니다.</p>
+    <div class="bar">${act('resetCfg', '기본값으로 초기화', {}, 'danger')}</div>
+  </div>`;
+}
+
+// 입력값 → draft
+['input', 'change'].forEach(ev => $('#tab-settings').addEventListener(ev, e => {
+  const t = e.target; if (!t.dataset || !t.dataset.bind) return;
+  if (ev === 'input' && (t.tagName === 'SELECT' || t.type === 'checkbox')) return;
+  let v = t.type === 'checkbox' ? t.checked : t.value;
+  if (t.dataset.type === 'num') v = v === '' ? 0 : Number(v);
+  if (t.dataset.type === 'list') v = v.split(',').map(x => x.trim()).filter(Boolean);
+  if (/\.col$|^infoColumns\./.test(t.dataset.bind)) v = String(v).trim().toUpperCase();
+  setPath(draft, t.dataset.bind, v); markDirty();
+  if (t.dataset.rerender) renderSettings();
+}));
+$('#tab-settings').addEventListener('change', e => {
+  if (e.target.id !== 'cfg-file' || !e.target.files[0]) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try { const c = JSON.parse(fr.result); if (!c.scales || !c.totalRules) throw new Error('자가검진 설정 파일이 아닙니다.');
+      draft = migrate(c); selScale = 0; markDirty(); renderSettings(); alert('불러왔습니다. 확인 후 ‘저장’을 눌러야 적용됩니다.');
+    } catch (err) { alert('설정 파일을 읽지 못했습니다: ' + err.message); }
+  };
+  fr.readAsText(e.target.files[0], 'utf-8');
+});
+// 버튼 동작
+$('#tab-settings').addEventListener('click', e => {
+  const sub = e.target.closest('[data-sub]'); if (sub) { setSub = sub.dataset.sub; renderSettings(); return; }
+  const ss = e.target.closest('[data-sel-scale]'); if (ss) { selScale = Number(ss.dataset.selScale); renderSettings(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const d = b.dataset, s = draft.scales[selScale];
+  const mv = (arr, i, dd) => { const j = i + dd; if (j < 0 || j >= arr.length) return false; [arr[i], arr[j]] = [arr[j], arr[i]]; return true; };
+  const I = k => Number(d[k]);
+  switch (d.act) {
+    case 'save': {
+      const ids = draft.scales.map(x => x.id); if (new Set(ids).size !== ids.length) { alert('척도 ID가 겹칩니다.'); return; }
+      config = clone(draft); if (!lsSave(LS_CFG, config)) alert('이 브라우저에 저장하지 못했습니다. 설정 파일로 내보내 두세요.');
+      dirty = false; newTest(); renderSettings(); return;
+    }
+    case 'revert': if (!confirm('저장하지 않은 변경사항을 버릴까요?')) return; draft = clone(config); dirty = false; renderSettings(); return;
+    case 'addScale':
+      draft.scales.push({ id: 'scale_' + Date.now().toString(36), enabled: true, name: '새 척도', shortName: '새 척도', method: 'sum', intro: '', instruction: '',
+        items: [{ text: '', col: '', options: clone(OPT_PHQ) }], levels: [{ min: 0, level: '양호', desc: '' }], rules: [], default: { label: '', level: '양호', desc: '' } });
+      selScale = draft.scales.length - 1; break;
+    case 'dupScale': { const c = clone(s); c.id = 'scale_' + Date.now().toString(36); c.name += ' (복사본)'; draft.scales.splice(selScale + 1, 0, c); selScale++; break; }
+    case 'delScale': if (!confirm(`‘${s.name}’ 척도를 삭제할까요?`)) return; draft.scales.splice(selScale, 1); selScale = Math.max(0, selScale - 1); break;
+    case 'mvScale': if (mv(draft.scales, selScale, I('d'))) selScale += I('d'); break;
+    case 'addItem': s.items.push({ text: '', col: '', options: clone(s.items[s.items.length - 1] ? s.items[s.items.length - 1].options : OPT_PHQ) }); break;
+    case 'delItem': if (!confirm(`${I('i') + 1}번 문항을 삭제할까요?`)) return; s.items.splice(I('i'), 1); fixRuleItems(s, I('i'), null); break;
+    case 'mvItem': { const i = I('i'), j = i + I('d'); if (mv(s.items, i, I('d'))) fixRuleItems(s, i, j); break; }
+    case 'addOpt': s.items[I('i')].options.push({ label: '', score: 0 }); break;
+    case 'delOpt': { const it = s.items[I('i')], k = I('k'); it.options.splice(k, 1);
+      s.rules.forEach(r => r.conds.forEach(c => { if (c.item === I('i')) c.answers = c.answers.filter(a => a !== k).map(a => a > k ? a - 1 : a); })); break; }
+    case 'copyOpts': if (!s.items.length || !confirm('1번 문항의 보기와 점수를 나머지 모든 문항에 덮어쓸까요?')) return; s.items.forEach((it, i) => { if (i) it.options = clone(s.items[0].options); }); break;
+    case 'fillCols': { const st = colToIdx($('#startcol').value); if (st < 0) { alert('시작 열을 L처럼 영문으로 입력하세요.'); return; } s.items.forEach((it, i) => it.col = idxToCol(st + i)); break; }
+    case 'addLevel': s.levels.push({ min: maxScore(s), level: '위험', desc: '' }); break;
+    case 'delLevel': s.levels.splice(I('j'), 1); break;
+    case 'addRule': s.rules.push({ match: 'any', conds: [{ item: 0, answers: [] }], label: '', level: '주의', desc: '' }); break;
+    case 'delRule': s.rules.splice(I('j'), 1); break;
+    case 'mvRule': mv(s.rules, I('j'), I('d')); break;
+    case 'addCond': s.rules[I('j')].conds.push({ item: 0, answers: [] }); break;
+    case 'delCond': s.rules[I('j')].conds.splice(I('ci'), 1); break;
+    case 'togAns': { const c = s.rules[I('j')].conds[I('ci')], k = I('k'); c.answers = b.checked ? [...new Set([...c.answers, k])] : c.answers.filter(a => a !== k); markDirty(); return; }
+    case 'addTRule': draft.totalRules.push({ match: 'any', conds: [{ scale: '*', levels: ['위험'] }], label: '', level: '주의', desc: '' }); break;
+    case 'delTRule': draft.totalRules.splice(I('j'), 1); break;
+    case 'mvTRule': mv(draft.totalRules, I('j'), I('d')); break;
+    case 'addTCond': draft.totalRules[I('j')].conds.push({ scale: '*', levels: [] }); break;
+    case 'delTCond': draft.totalRules[I('j')].conds.splice(I('ci'), 1); break;
+    case 'togLvl': { const c = draft.totalRules[I('j')].conds[I('ci')]; c.levels = b.checked ? [...new Set([...c.levels, d.l])] : c.levels.filter(x => x !== d.l); markDirty(); return; }
+    case 'addRegion': draft.regions.push({ name: '', display: '', phone: '', message: false }); break;
+    case 'delRegion': draft.regions.splice(I('j'), 1); break;
+    case 'exportPublic': {
+      const c = dirty ? draft : config;
+      if (!c.api) { if (!confirm('구글시트 웹 앱 주소(기본 설정)가 비어 있습니다. 이대로 내보내면 참여자 화면에서 결과가 센터로 전송되지 않습니다. 계속할까요?')) return; }
+      download('selfcheck-config.json', new Blob([JSON.stringify(c, null, 2)], { type: 'application/json' })); return;
+    }
+    case 'publishCfg': {
+      if (dirty) { alert('저장하지 않은 변경사항이 있습니다. 먼저 ‘저장’을 눌러 주세요.'); return; }
+      if (!config.api) { alert('기본 설정에 ‘구글시트 웹 앱 주소’를 먼저 넣고 저장해 주세요.'); return; }
+      const used = config.scales.filter(x => x.enabled).map(x => x.shortName || x.name).join(', ');
+      const key = prompt(`참여자 화면에 반영할 척도: ${used || '(없음)'}\n\n직원 비밀번호를 입력하세요.`); if (key === null) return;
+      const by = prompt('반영하는 사람 이름 (기록용)', '') || '';
+      fetch(config.api, { method: 'POST', body: JSON.stringify({ action: 'publishConfig', key, by, config }) })
+        .then(r => r.json()).then(r => { if (!r.ok) throw new Error(r.error); alert(`참여자 화면에 반영했습니다 (${r.updatedAt}).`); })
+        .catch(err => alert('반영하지 못했습니다: ' + (navigator.onLine ? err.message : '인터넷 연결을 확인해 주세요.')));
+      return;
+    }
+    case 'pullCfg': {
+      const api = (dirty ? draft : config).api;
+      if (!api) { alert('기본 설정에 ‘구글시트 웹 앱 주소’를 먼저 넣어 주세요.'); return; }
+      fetch(api + '?action=config', { cache: 'no-store' }).then(r => r.json()).then(r => {
+        if (!r.ok) throw new Error(r.error); if (!r.config) throw new Error('아직 반영된 설정이 없습니다.');
+        draft = migrate(r.config); draft.api = api; selScale = 0; markDirty(); renderSettings();
+        alert(`참여자 화면 설정(${r.updatedAt} 반영)을 받아왔습니다. 확인 후 ‘저장’을 눌러야 이 기기에 적용됩니다.`);
+      }).catch(err => alert('받아오지 못했습니다: ' + (navigator.onLine ? err.message : '인터넷 연결을 확인해 주세요.')));
+      return;
+    }
+    case 'loadOnline':
+      fetch('selfcheck-config.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('파일이 없습니다'); return r.json(); })
+        .then(c => { if (!c.scales) throw new Error('설정 파일이 아닙니다'); draft = migrate(c); selScale = 0; markDirty(); renderSettings(); alert('받아왔습니다. 확인 후 ‘저장’을 눌러야 이 기기에 적용됩니다.'); })
+        .catch(err => alert('받아오지 못했습니다: ' + err.message));
+      return;
+    case 'exportCfg': download('자가검진_설정_' + fileStamp() + '.json', new Blob([JSON.stringify(dirty ? draft : config, null, 2)], { type: 'application/json' })); return;
+    case 'resetCfg': if (!confirm('모든 척도와 설정을 기본값으로 되돌릴까요? (저장을 눌러야 적용)')) return; draft = clone(DEFAULT_CONFIG); selScale = 0; break;
+    default: return;
+  }
+  markDirty(); renderSettings();
+});
+// 문항 이동/삭제 시 규칙의 문항 번호 보정
+function fixRuleItems(s, from, to) {
+  s.rules.forEach(r => {
+    if (to === null) { r.conds = r.conds.filter(c => c.item !== from); r.conds.forEach(c => { if (c.item > from) c.item--; }); }
+    else r.conds.forEach(c => { if (c.item === from) c.item = to; else if (c.item === to) c.item = from; });
+  });
+}
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+if (PUBLIC) {
+  // 참여자 화면: 센터가 올린 설정을 받아 검사 화면만 보여줌 (이 폰에는 결과를 남기지 않음)
+  document.body.classList.add('public');
+  $('.app-head h1').textContent = '📋 마음건강 자가검진';
+  $('#ov-close').textContent = '처음으로';
+  $('#ov-print').textContent = '🖨 결과 저장(PDF)';
+  $('#tab-test').innerHTML = '<div class="card">검사를 준비하는 중입니다…</div>';
+  fetch('selfcheck-config.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(async c => {
+      config = migrate(c);
+      if (!config.api) throw new Error();
+      try {   // 직원이 ‘참여자 화면에 바로 반영’한 최신 설정이 있으면 그것을 사용
+        const r = await (await fetch(config.api + '?action=config', { cache: 'no-store' })).json();
+        if (r.ok && r.config && r.config.scales) { const api = config.api; config = migrate(r.config); config.api = api; }
+      } catch (e) {}
+      if (config.orgName) $('.app-head h1').textContent = '📋 ' + config.orgName + ' 마음건강 자가검진';
+      newTest(); renderTest(); flushSendQ();
+    })
+    .catch(() => { $('#tab-test').innerHTML = '<div class="card msg err">검사를 준비하지 못했습니다. 잠시 후 다시 열어 주세요. 계속 안 되면 센터로 문의해 주세요.</div>'; });
+  window.addEventListener('online', () => flushSendQ());
+} else {
+  if (/^https?:$/.test(location.protocol)) {
+    const m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.webmanifest'; document.head.appendChild(m);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  renderTest();
+}
+</script>
+</body>
+</html>

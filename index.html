@@ -31,7 +31,7 @@
   .row > label { flex: 1 1 160px; }
   label.f { display: block; font-size: 13px; color: var(--muted); font-weight: 600; }
   label.f input, label.f select, label.f textarea { display: block; width: 100%; margin-top: 4px; }
-  input[type=text], input[type=number], select, textarea { border: 1px solid #ccd3da; border-radius: 6px; padding: 7px 9px; background: #fff; }
+  input[type=text], input[type=number], input[type=tel], select, textarea { border: 1px solid #ccd3da; border-radius: 6px; padding: 7px 9px; background: #fff; }
   textarea { width: 100%; min-height: 54px; resize: vertical; line-height: 1.45; }
   input.sm { width: 64px; } input.md { width: 120px; }
   .btn { border: 1px solid #ccd3da; background: #fff; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-weight: 600; white-space: nowrap; }
@@ -117,6 +117,14 @@
   .report .footer { text-align: center; margin-top: 30px; font-size: 13px; color: #7f8c8d; }
 
   #print-area { display: none; }
+  body.public .app-head { justify-content: center; }
+  body.public .tabs { display: none; }
+  .consent { background:#f6f8fa; border-radius:8px; padding:12px 14px; font-size:13.5px; line-height:1.6; color:#4a5866; white-space:pre-line; margin:8px 0 10px; }
+  .crisis { max-width:650px; margin:0 auto 12px; background:#fff1f0; border:2px solid #e74c3c; color:#922b21; border-radius:12px; padding:14px 18px; font-size:16px; line-height:1.6; }
+  .crisis a { color:#c0392b; font-weight:800; font-size:20px; }
+  .ov-bar { flex-wrap: wrap; }
+  .ov-status { flex:1 1 100%; order:2; color:#fff; font-size:14px; text-align:right; }
+  .ov-status:empty { display:none; }
   @media print {
     body { background: #fff !important; }
     body > *:not(#print-area) { display: none !important; }
@@ -171,7 +179,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 </main>
 
 <div id="overlay">
-  <div class="ov-bar">
+  <div class="ov-bar"><span class="ov-status" id="ov-status"></span>
     <button class="btn pri" id="ov-print">🖨 인쇄 / PDF 저장</button>
     <button class="btn" id="ov-close">닫기</button>
   </div>
@@ -205,6 +213,8 @@ const DESC_GAD_BAD = '주의가 필요한 수준의 걱정과 불안이 우려�
 const DEFAULT_CONFIG = {
   version: 1,
   orgName: '',
+  api: '',   // 참여자 화면 결과를 받을 구글시트 웹 앱 주소
+  consentText: '수집 항목: 이름(별칭 가능), 연락처, 성별, 연령대, 거주지, 검사 응답 및 결과\n수집 목적: 검사 결과 안내 및 상담이 필요한 경우 센터의 연락·상담 연계\n보유 기간: 수집일로부터 1년\n동의를 거부할 수 있으며, 거부하실 경우 검사 참여가 제한됩니다.',
   hotline: '109 / 1577-0199',
   footer: '본 검사 결과는 자가검진 참고용으로 활용되며, 정확한 진단은 전문가와 상담하세요.',
   genders: ['남', '여'],
@@ -484,7 +494,10 @@ function renderReport(sn) {
 let ovSnaps = [], ovOnClose = null;
 function showReport(snap, onClose) {
   ovSnaps = [snap]; ovOnClose = onClose || null;
-  $('#ov-body').innerHTML = renderReport(snap);
+  ovStatus('');
+  const crisis = PUBLIC && snap.total && snap.total.level === '위험'
+    ? `<div class="crisis">지금 많이 힘드시다면 혼자 견디지 마세요.<br>24시간 언제든 <a href="tel:109">☎ 109</a> (자살예방 상담전화)로 연락하시면 바로 도움을 받으실 수 있습니다.</div>` : '';
+  $('#ov-body').innerHTML = crisis + renderReport(snap);
   $('#overlay').classList.add('on'); $('#overlay').scrollTop = 0;
 }
 function closeReport() { $('#overlay').classList.remove('on'); const f = ovOnClose; ovOnClose = null; if (f) f(); }
@@ -505,8 +518,9 @@ function migrate(c) {
   c.scales.forEach(s => { s.levels = s.levels || []; s.rules = s.rules || []; s.default = s.default || { label: '', level: '양호', desc: '' }; });
   return c;
 }
-let config = migrate(lsLoad(LS_CFG) || clone(DEFAULT_CONFIG));
-let records = lsLoad(LS_REC) || [];
+const PUBLIC = !!window.PUBLIC_MODE;   // 참여자용 화면(p.html)
+let config = PUBLIC ? clone(DEFAULT_CONFIG) : migrate(lsLoad(LS_CFG) || clone(DEFAULT_CONFIG));
+let records = PUBLIC ? [] : (lsLoad(LS_REC) || []);
 let storageOK = lsSave('mhs_probe', 1);
 let draft = clone(config), dirty = false, setSub = 'scales', selScale = 0;
 let curTab = 'test';
@@ -527,7 +541,7 @@ function renderTab() { ({ test: renderTest, batch: renderBatch, records: renderR
    1) 검사하기
    ===================================================================== */
 let test = null;
-function newTest() { test = { stage: 'info', person: { name: '', gender: '', age: '', region: '', regionEtc: '' }, selected: config.scales.filter(s => s.enabled).map(s => s.id), answers: {}, msg: '' }; }
+function newTest() { test = { stage: 'info', person: { name: '', phone: '', gender: '', age: '', region: '', regionEtc: '' }, consent: false, selected: config.scales.filter(s => s.enabled).map(s => s.id), answers: {}, msg: '' }; }
 newTest();
 
 function renderTest() {
@@ -537,18 +551,22 @@ function renderTest() {
     const p = test.person;
     const sel = (key, list) => `<select data-p="${key}"><option value="">선택</option>${list.map(v => `<option ${p[key] === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
     el.innerHTML = `
-    ${storageOK ? '' : '<div class="msg err">이 브라우저에서는 저장 기능이 막혀 있어 검사 기록과 설정이 창을 닫으면 사라집니다. 결과는 바로 인쇄하거나 엑셀로 내려받아 주세요.</div>'}
+    ${storageOK || PUBLIC ? '' : '<div class="msg err">이 브라우저에서는 저장 기능이 막혀 있어 검사 기록과 설정이 창을 닫으면 사라집니다. 결과는 바로 인쇄하거나 엑셀로 내려받아 주세요.</div>'}
+    ${PUBLIC ? `<div class="card"><h3>마음건강 자가검진</h3><p class="hint" style="font-size:14.5px">몇 가지 질문에 답하시면 결과를 바로 확인하실 수 있습니다. 응답 내용은 ${esc(config.orgName || '센터')}에만 전달되며, 상담이 필요하다고 판단되면 센터에서 연락드릴 수 있습니다.</p></div>` : ''}
     <div class="card">
       <h3>기본 정보</h3>
       <div class="row">
-        <label class="f">이름 <input type="text" data-p="name" value="${esc(p.name)}" placeholder="이름 또는 별칭"></label>
+        <label class="f">이름${PUBLIC ? ' (별칭 가능)' : ''} <input type="text" data-p="name" value="${esc(p.name)}" placeholder="이름 또는 별칭" autocomplete="name"></label>
+        ${PUBLIC ? `<label class="f">연락처 <input type="tel" data-p="phone" value="${esc(p.phone)}" placeholder="010-0000-0000" autocomplete="tel"></label>` : ''}
         <label class="f">성별 ${sel('gender', config.genders)}</label>
         <label class="f">연령대 ${sel('age', config.ages)}</label>
         <label class="f">거주지 <select data-p="region"><option value="">선택</option>${config.regions.map(r => `<option ${p.region === r.display ? 'selected' : ''}>${esc(r.display)}</option>`).join('')}<option value="__etc" ${p.region === '__etc' ? 'selected' : ''}>기타 (직접 입력)</option></select></label>
         ${p.region === '__etc' ? `<label class="f">거주지 직접 입력 <input type="text" data-p="regionEtc" value="${esc(p.regionEtc)}"></label>` : ''}
       </div>
     </div>
-    <div class="card scale-pick">
+    ${PUBLIC ? `<div class="card"><h3>개인정보 수집·이용 동의</h3><div class="consent">${esc(config.consentText)}</div>
+      <label class="chk" style="font-weight:700"><input type="checkbox" id="t-consent" ${test.consent ? 'checked' : ''} style="width:22px;height:22px"> 위 내용에 동의합니다</label></div>` : ''}
+    <div class="card scale-pick" ${PUBLIC ? 'hidden' : ''}>
       <h3>실시할 검사</h3>
       ${enabled.length ? enabled.map(s => `<label><input type="checkbox" data-pick="${esc(s.id)}" ${test.selected.includes(s.id) ? 'checked' : ''}> <b>${esc(s.name)}</b> <span class="hint">${s.items.length}문항</span></label>`).join('')
         : '<div class="msg info">사용 중인 척도가 없습니다. ‘척도·설정 관리’에서 척도를 켜 주세요.</div>'}
@@ -559,7 +577,16 @@ function renderTest() {
     el.querySelectorAll('[data-pick]').forEach(i => i.addEventListener('change', () => {
       const id = i.dataset.pick; test.selected = test.selected.filter(x => x !== id); if (i.checked) test.selected.push(id);
     }));
+    if ($('#t-consent')) $('#t-consent').onchange = e => { test.consent = e.target.checked; };
     $('#t-start').onclick = () => {
+      if (PUBLIC) {
+        const p = test.person, bad = m => { test.msg = m; renderTest(); };
+        if (!p.name.trim()) return bad('이름(또는 별칭)을 입력해 주세요.');
+        if (String(p.phone).replace(/[^0-9]/g, '').length < 10) return bad('연락처를 정확히 입력해 주세요.');
+        if (!p.gender || !p.age || !p.region || (p.region === '__etc' && !p.regionEtc.trim())) return bad('성별, 연령대, 거주지를 선택해 주세요.');
+        if (!test.consent) return bad('개인정보 수집·이용에 동의해 주세요.');
+        test.selected = enabled.map(s => s.id);
+      }
       const sel = enabled.filter(s => test.selected.includes(s.id));
       if (!sel.length) { test.msg = '실시할 검사를 하나 이상 선택해 주세요.'; renderTest(); return; }
       test.msg = ''; test.stage = 'q'; test.answers = {}; sel.forEach(s => test.answers[s.id] = s.items.map(() => -1));
@@ -612,10 +639,45 @@ function submitTest() {
   if (cnt) { $('#t-msg').innerHTML = `<div class="msg err">응답하지 않은 문항이 ${cnt}개 있습니다. 표시된 문항에 답해 주세요.</div>`; first.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const p = test.person;
   const person = { name: p.name.trim(), gender: p.gender, age: p.age, region: p.region === '__etc' ? p.regionEtc.trim() : p.region };
+  if (PUBLIC) person.phone = String(p.phone).replace(/[^0-9]/g, '');
   const snap = buildSnapshot(config, person, test.answers);
+  if (PUBLIC) {
+    const payload = sheetPayload(snap);
+    showReport(snap, () => { newTest(); renderTest(); window.scrollTo(0, 0); });
+    sendResult(payload);
+    return;
+  }
   records.unshift({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 6), snap });
   saveRecords();
   showReport(snap, () => { newTest(); renderTest(); window.scrollTo(0, 0); });
+}
+
+/* ---- 참여자 화면: 센터 구글시트로 결과 보내기 ---- */
+let sendQ = PUBLIC ? (lsLoad('mhs_pub_sendq') || []) : [];
+function sheetPayload(snap) {
+  return { action: 'submit', cid: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), source: '참여자', submittedAt: snap.date,
+    person: snap.person, consent: true, total: snap.total,
+    scales: snap.scales.map(s => ({ id: s.id, name: s.shortName || s.name, method: s.method, score: s.score, label: s.label, level: s.level, answers: s.answers })) };
+}
+async function postResult(payload) {
+  const r = await fetch(config.api, { method: 'POST', body: JSON.stringify(payload) });
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || '전송 오류'); return j;
+}
+function ovStatus(html) { const el = $('#ov-status'); if (el) el.innerHTML = html; }
+async function sendResult(payload) {
+  ovStatus('센터로 전송 중…');
+  try { await postResult(payload); ovStatus('✓ 결과가 센터에 전달되었습니다'); }
+  catch (e) {
+    sendQ.push(payload); lsSave('mhs_pub_sendq', sendQ);
+    ovStatus('⚠ 인터넷 연결이 불안정해 센터에 아직 전달되지 않았습니다. <button class="btn sm" id="ov-retry">다시 보내기</button>');
+    const b = $('#ov-retry'); if (b) b.onclick = async () => { ovStatus('다시 보내는 중…'); await flushSendQ(); ovStatus(sendQ.length ? '⚠ 아직 전달되지 않았습니다. 인터넷 연결을 확인한 뒤 이 화면을 다시 열어 주세요.' : '✓ 결과가 센터에 전달되었습니다'); };
+  }
+}
+async function flushSendQ() {
+  if (!sendQ.length || !config.api) return;
+  const rest = [];
+  for (const p of sendQ) { try { await postResult(p); } catch (e) { rest.push(p); } }
+  sendQ = rest; lsSave('mhs_pub_sendq', sendQ);
 }
 
 /* =====================================================================
@@ -1056,6 +1118,10 @@ function renderBasicEditor() {
       <label class="f">성별 (쉼표로 구분) <input type="text" data-bind="genders" data-type="list" value="${esc(draft.genders.join(', '))}"></label>
       <label class="f" style="flex:2">연령대 (쉼표로 구분) <input type="text" data-bind="ages" data-type="list" value="${esc(draft.ages.join(', '))}"></label>
     </div>
+    <h4>참여자 화면 (QR·링크로 하는 검사)</h4>
+    <label class="f">결과를 받을 구글시트 웹 앱 주소 ${inp('api', draft.api || '', '', 'https://script.google.com/macros/s/.../exec')}</label>
+    <label class="f" style="margin-top:8px">개인정보 수집·이용 동의 문구 ${area('consentText', draft.consentText || '')}</label>
+    <p class="hint">이 두 가지는 참여자 화면에서만 쓰입니다. 이 PC·패드에서 하는 검사는 지금처럼 이 기기에만 저장됩니다. 바꾼 뒤 저장하고 <b>설정 파일 → 참여자 화면에 바로 반영</b>을 누르면 적용됩니다.</p>
     <h4>엑셀 일괄처리 기본 열</h4>
     <div class="row">
       <label class="f">이름 ${inp('infoColumns.name', ic.name, 'sm')}</label><label class="f">성별 ${inp('infoColumns.gender', ic.gender, 'sm')}</label>
@@ -1070,6 +1136,15 @@ function renderFileEditor() {
     <p class="hint">척도·판정 기준·연락처 설정은 이 PC의 이 브라우저에 저장됩니다. 다른 PC에서 같은 설정을 쓰거나 백업하려면 설정 파일로 내보낸 뒤, 그 PC에서 불러오세요. (검사 기록은 포함되지 않습니다)</p>
     <div class="bar">${act('exportCfg', '설정 파일 내보내기', {}, 'pri')}
       <label class="btn">설정 파일 불러오기<input type="file" id="cfg-file" accept=".json" hidden></label></div>
+    <h4>참여자 화면(QR·링크)에 반영하기</h4>
+    <p class="hint">이 기기의 척도·판정 기준·연락처·동의 문구를 참여자 화면에 그대로 적용합니다. 인터넷 연결과 <b>직원 비밀번호</b>가 필요하며, 비밀번호를 아는 직원은 누구나 할 수 있습니다. 링크와 QR은 그대로이고, 참여자가 다음에 열 때부터 새 기준으로 검사합니다.</p>
+    <div class="bar">${act('publishCfg', '참여자 화면에 바로 반영', {}, 'pri')}${act('pullCfg', '참여자 화면 설정 받아오기', {}, '')}</div>
+    <p class="hint">‘받아오기’는 다른 직원이 반영한 최신 설정을 이 기기로 가져옵니다. 반영 기록은 구글시트의 ‘척도설정 변경기록’ 탭에 남습니다.</p>
+    <h4>처음 설치할 때 한 번만</h4>
+    <p class="hint">GitHub 저장소에 올릴 <b>selfcheck-config.json</b>을 만듭니다. 참여자 화면이 구글시트 주소를 찾는 데 쓰이며, 이후 척도 수정은 위의 ‘바로 반영’으로 하면 됩니다.</p>
+    <div class="bar">${act('exportPublic', 'GitHub용 selfcheck-config.json 내보내기', {}, '')}
+      ${/^https?:$/.test(location.protocol) ? act('loadOnline', 'GitHub에 올린 설정 받아오기', {}, '') : ''}</div>
+    ${/^https?:$/.test(location.protocol) ? `<p class="hint">참여자 화면 주소: <b>${esc(new URL('p.html', location.href).toString())}</b></p>` : ''}
     <h4>초기화</h4>
     <p class="hint">모든 척도와 설정을 처음 상태(PHQ-9, P-4, GAD-7 꺼짐)로 되돌립니다.</p>
     <div class="bar">${act('resetCfg', '기본값으로 초기화', {}, 'danger')}</div>
@@ -1143,6 +1218,37 @@ $('#tab-settings').addEventListener('click', e => {
     case 'togLvl': { const c = draft.totalRules[I('j')].conds[I('ci')]; c.levels = b.checked ? [...new Set([...c.levels, d.l])] : c.levels.filter(x => x !== d.l); markDirty(); return; }
     case 'addRegion': draft.regions.push({ name: '', display: '', phone: '', message: false }); break;
     case 'delRegion': draft.regions.splice(I('j'), 1); break;
+    case 'exportPublic': {
+      const c = dirty ? draft : config;
+      if (!c.api) { if (!confirm('구글시트 웹 앱 주소(기본 설정)가 비어 있습니다. 이대로 내보내면 참여자 화면에서 결과가 센터로 전송되지 않습니다. 계속할까요?')) return; }
+      download('selfcheck-config.json', new Blob([JSON.stringify(c, null, 2)], { type: 'application/json' })); return;
+    }
+    case 'publishCfg': {
+      if (dirty) { alert('저장하지 않은 변경사항이 있습니다. 먼저 ‘저장’을 눌러 주세요.'); return; }
+      if (!config.api) { alert('기본 설정에 ‘구글시트 웹 앱 주소’를 먼저 넣고 저장해 주세요.'); return; }
+      const used = config.scales.filter(x => x.enabled).map(x => x.shortName || x.name).join(', ');
+      const key = prompt(`참여자 화면에 반영할 척도: ${used || '(없음)'}\n\n직원 비밀번호를 입력하세요.`); if (key === null) return;
+      const by = prompt('반영하는 사람 이름 (기록용)', '') || '';
+      fetch(config.api, { method: 'POST', body: JSON.stringify({ action: 'publishConfig', key, by, config }) })
+        .then(r => r.json()).then(r => { if (!r.ok) throw new Error(r.error); alert(`참여자 화면에 반영했습니다 (${r.updatedAt}).`); })
+        .catch(err => alert('반영하지 못했습니다: ' + (navigator.onLine ? err.message : '인터넷 연결을 확인해 주세요.')));
+      return;
+    }
+    case 'pullCfg': {
+      const api = (dirty ? draft : config).api;
+      if (!api) { alert('기본 설정에 ‘구글시트 웹 앱 주소’를 먼저 넣어 주세요.'); return; }
+      fetch(api + '?action=config', { cache: 'no-store' }).then(r => r.json()).then(r => {
+        if (!r.ok) throw new Error(r.error); if (!r.config) throw new Error('아직 반영된 설정이 없습니다.');
+        draft = migrate(r.config); draft.api = api; selScale = 0; markDirty(); renderSettings();
+        alert(`참여자 화면 설정(${r.updatedAt} 반영)을 받아왔습니다. 확인 후 ‘저장’을 눌러야 이 기기에 적용됩니다.`);
+      }).catch(err => alert('받아오지 못했습니다: ' + (navigator.onLine ? err.message : '인터넷 연결을 확인해 주세요.')));
+      return;
+    }
+    case 'loadOnline':
+      fetch('selfcheck-config.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('파일이 없습니다'); return r.json(); })
+        .then(c => { if (!c.scales) throw new Error('설정 파일이 아닙니다'); draft = migrate(c); selScale = 0; markDirty(); renderSettings(); alert('받아왔습니다. 확인 후 ‘저장’을 눌러야 이 기기에 적용됩니다.'); })
+        .catch(err => alert('받아오지 못했습니다: ' + err.message));
+      return;
     case 'exportCfg': download('자가검진_설정_' + fileStamp() + '.json', new Blob([JSON.stringify(dirty ? draft : config, null, 2)], { type: 'application/json' })); return;
     case 'resetCfg': if (!confirm('모든 척도와 설정을 기본값으로 되돌릴까요? (저장을 눌러야 적용)')) return; draft = clone(DEFAULT_CONFIG); selScale = 0; break;
     default: return;
@@ -1158,11 +1264,33 @@ function fixRuleItems(s, from, to) {
 }
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-if (/^https?:$/.test(location.protocol)) {
-  const m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.webmanifest'; document.head.appendChild(m);
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (PUBLIC) {
+  // 참여자 화면: 센터가 올린 설정을 받아 검사 화면만 보여줌 (이 폰에는 결과를 남기지 않음)
+  document.body.classList.add('public');
+  $('.app-head h1').textContent = '📋 마음건강 자가검진';
+  $('#ov-close').textContent = '처음으로';
+  $('#ov-print').textContent = '🖨 결과 저장(PDF)';
+  $('#tab-test').innerHTML = '<div class="card">검사를 준비하는 중입니다…</div>';
+  fetch('selfcheck-config.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(async c => {
+      config = migrate(c);
+      if (!config.api) throw new Error();
+      try {   // 직원이 ‘참여자 화면에 바로 반영’한 최신 설정이 있으면 그것을 사용
+        const r = await (await fetch(config.api + '?action=config', { cache: 'no-store' })).json();
+        if (r.ok && r.config && r.config.scales) { const api = config.api; config = migrate(r.config); config.api = api; }
+      } catch (e) {}
+      if (config.orgName) $('.app-head h1').textContent = '📋 ' + config.orgName + ' 마음건강 자가검진';
+      newTest(); renderTest(); flushSendQ();
+    })
+    .catch(() => { $('#tab-test').innerHTML = '<div class="card msg err">검사를 준비하지 못했습니다. 잠시 후 다시 열어 주세요. 계속 안 되면 센터로 문의해 주세요.</div>'; });
+  window.addEventListener('online', () => flushSendQ());
+} else {
+  if (/^https?:$/.test(location.protocol)) {
+    const m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.webmanifest'; document.head.appendChild(m);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  renderTest();
 }
-renderTest();
 </script>
 </body>
 </html>
