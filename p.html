@@ -2853,7 +2853,8 @@ function renderTest() {
       <h3>기본 정보</h3>
       <div class="row">
         <label class="f">이름${PUBLIC ? ' (별칭 가능)' : ''} <input type="text" data-p="name" value="${esc(p.name)}" placeholder="이름 또는 별칭" autocomplete="name"></label>
-        ${PUBLIC ? `<label class="f">${ev && ev.guardian ? '보호자 연락처' : '연락처'} <input type="tel" data-p="phone" value="${esc(p.phone)}" placeholder="010-0000-0000" autocomplete="tel"></label>` : ''}
+        ${PUBLIC ? `<label class="f">${ev && ev.guardian ? '보호자 연락처' : '연락처'} <input type="tel" data-p="phone" value="${esc(p.phone)}" placeholder="010-0000-0000" autocomplete="tel"></label>`
+          : `<label class="f">연락처 (선택) <input type="tel" data-p="phone" value="${esc(p.phone)}" placeholder="고위험 시 연락용"></label>`}
         <label class="f">성별 ${sel('gender', config.genders)}</label>
         <label class="f">연령대 ${sel('age', eventAges(ev))}</label>
         <label class="f">거주지 <select data-p="region"><option value="">선택</option>${config.regions.map(r => `<option ${p.region === r.display ? 'selected' : ''}>${esc(r.display)}</option>`).join('')}<option value="__etc" ${p.region === '__etc' ? 'selected' : ''}>기타 (직접 입력)</option></select></label>
@@ -2863,6 +2864,7 @@ function renderTest() {
     ${PUBLIC ? `<div class="card"><h3>개인정보 수집·이용 동의</h3><div class="consent">${esc(eventConsent(ev))}</div>
       <label class="chk" style="font-weight:700"><input type="checkbox" id="t-consent" ${test.consent ? 'checked' : ''} style="width:22px;height:22px"> 위 내용에 동의합니다</label>
       ${ev && ev.guardian ? `<label class="chk" style="font-weight:700;margin-top:10px;align-items:flex-start"><input type="checkbox" id="t-guardian" ${test.guardian ? 'checked' : ''} style="width:22px;height:22px;flex:none"> 만 14세 미만인 경우, 보호자(법정대리인)가 위 내용을 확인하고 동의합니다</label>` : ''}</div>` : ''}
+    ${!PUBLIC ? `<div class="card" style="padding:12px 20px"><label class="chk"><input type="checkbox" id="t-consent" ${test.consent ? 'checked' : ''}> 개인정보 수집·이용 동의를 받았습니다 <span class="hint">(구글시트로 보낼 기록에 함께 표시됩니다)</span></label></div>` : ''}
     <div class="card scale-pick" ${PUBLIC ? 'hidden' : ''}>
       <h3>실시할 검사</h3>
       ${enabled.length ? enabled.map(s => `<label><input type="checkbox" data-pick="${esc(s.id)}" ${test.selected.includes(s.id) ? 'checked' : ''}> <b>${esc(s.name)}</b> <span class="hint">${s.items.length}문항</span></label>`).join('')
@@ -2939,10 +2941,11 @@ function submitTest() {
   if (cnt) { $('#t-msg').innerHTML = `<div class="msg err">응답하지 않은 문항이 ${cnt}개 있습니다. 표시된 문항에 답해 주세요.</div>`; first.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const p = test.person;
   const person = { name: p.name.trim(), gender: p.gender, age: p.age, region: p.region === '__etc' ? p.regionEtc.trim() : p.region };
-  if (PUBLIC) person.phone = String(p.phone).replace(/[^0-9]/g, '');
+  person.phone = String(p.phone || '').replace(/[^0-9]/g, '');
   if (PUBLIC && curEvent() && curEvent().guardian) person.guardian = true;
   const snap = buildSnapshot(config, person, test.answers);
   if (curEvent()) snap.event = { id: curEvent().id, name: curEvent().name };
+  snap.consent = PUBLIC ? true : !!test.consent;
   if (PUBLIC) {
     const payload = sheetPayload(snap);
     showReport(snap, () => { newTest(); renderTest(); window.scrollTo(0, 0); });
@@ -2956,9 +2959,9 @@ function submitTest() {
 
 /* ---- 참여자 화면: 센터 구글시트로 결과 보내기 ---- */
 let sendQ = PUBLIC ? (lsLoad('mhs_pub_sendq') || []) : [];
-function sheetPayload(snap) {
-  return { action: 'submit', cid: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), source: '참여자', submittedAt: snap.date,
-    person: snap.person, consent: true, total: snap.total, event: snap.event || null,
+function sheetPayload(snap, source, cid) {
+  return { action: 'submit', cid: cid || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)), source: source || '참여자', submittedAt: snap.date,
+    person: snap.person, consent: source ? !!snap.consent : true, total: snap.total, event: snap.event || null,
     scales: snap.scales.map(s => ({ id: s.id, name: s.shortName || s.name, method: s.method, score: s.score, label: s.label, level: s.level, answers: s.answers })) };
 }
 async function postResult(payload) {
@@ -3187,7 +3190,7 @@ function importRecords(file) {
       let added = 0, dup = 0, unmatched = 0;
       rows.slice(1).forEach((row, ri) => {
         const get = i => i >= 0 && row[i] != null ? String(row[i]).trim() : '';
-        const person = { name: get(hi('이름')), gender: get(hi('성별')), age: get(hi('연령대')), region: get(hi('거주지')) };
+        const person = { name: get(hi('이름')), phone: get(hi('연락처')).replace(/[^0-9]/g, ''), gender: get(hi('성별')), age: get(hi('연령대')), region: get(hi('거주지')) };
         const answers = {}; let any = false;
         plan.forEach(({ s, cols }) => {
           answers[s.id] = cols.map((c, i) => { let raw = get(c); if (raw === '(해당없음)') raw = '';
@@ -3195,6 +3198,8 @@ function importRecords(file) {
         });
         if (!any) return;
         const snap = buildSnapshot(config, person, answers, get(hi('검사일시')) || today());
+        const evName = hi('행사') >= 0 ? get(hi('행사')) : '';
+        if (evName) { const ev = (config.events || []).find(e => e.name === evName); snap.event = { id: ev ? ev.id : '', name: evName }; }
         if (have.has(keyOf(snap))) { dup++; return; }
         have.add(keyOf(snap));
         records.push({ id: Date.now() + '_' + ri + '_' + Math.random().toString(36).slice(2, 6), snap, imported: file.name });
@@ -3220,14 +3225,16 @@ function renderRecords() {
       <button class="btn pri" id="r-xlsx" ${records.length ? '' : 'disabled'}>엑셀로 내려받기</button>
       <button class="btn" id="r-print" ${records.length ? '' : 'disabled'}>선택 결과지 인쇄</button>
       <label class="btn">다른 기기 기록 불러오기<input type="file" id="r-import" accept=".xlsx,.xls,.csv" hidden></label>
+      <button class="btn" id="r-send" ${records.length ? '' : 'disabled'}>☁ 구글시트로 보내기${records.filter(r => !r.sentAt).length ? ` (미전송 ${records.filter(r => !r.sentAt).length})` : ''}</button>
       <span class="spacer"></span>
       <button class="btn danger" id="r-del" ${records.length ? '' : 'disabled'}>선택 삭제</button>
     </div>
     ${recMsg}
     ${records.length ? `<div class="tbl-wrap"><table class="t">
-      <tr><th><input type="checkbox" id="r-all"></th><th>검사일시</th><th>행사</th><th>이름</th><th>성별</th><th>연령대</th><th>거주지</th><th>검사 결과</th><th>총결과</th><th></th></tr>
+      <tr><th><input type="checkbox" id="r-all"></th><th>시트</th><th>검사일시</th><th>행사</th><th>이름</th><th>성별</th><th>연령대</th><th>거주지</th><th>검사 결과</th><th>총결과</th><th></th></tr>
       ${records.map(r => { const sn = r.snap; return `<tr>
         <td><input type="checkbox" data-rsel="${esc(r.id)}" ${recSel.has(r.id) ? 'checked' : ''}></td>
+        <td title="${esc(r.sentAt ? '구글시트 전송: ' + r.sentAt : '아직 구글시트로 보내지 않음')}">${r.sentAt ? '<span style="color:var(--good);font-weight:700">✓</span>' : '<span class="hint">-</span>'}</td>
         <td>${esc(sn.date)}</td><td>${esc(sn.event ? sn.event.name : '-')}</td><td>${esc(sn.person.name)}</td><td>${esc(sn.person.gender)}</td><td>${esc(sn.person.age)}</td><td>${esc(sn.person.region)}</td>
         <td>${sn.scales.map(s => `${esc(s.shortName || s.name)} ${s.method === 'sum' ? esc(s.score) + ' ' : ''}<span class="badge b-${esc(s.level)}">${esc(s.method === 'sum' ? s.level : s.label)}</span>`).join('<br>')}</td>
         <td>${sn.total ? `<span class="badge t-${esc(sn.total.level)}">${esc(sn.total.label)}</span>` : '-'}</td>
@@ -3246,16 +3253,46 @@ function renderRecords() {
     records = records.filter(r => !recSel.has(r.id)); recSel = new Set(); saveRecords(); renderRecords();
   };
   $('#r-xlsx').onclick = exportRecords;
+  $('#r-send').onclick = sendRecordsToSheet;
+}
+// 같은 검사 기록이면 어느 기기에서 보내도 같은 번호가 되도록 (다른 기기에서 불러온 기록도 중복 방지)
+function recordKey(sn) {
+  const t = JSON.stringify([sn.date, sn.person.name, sn.person.phone || '', sn.person.age, sn.event ? sn.event.name : '', sn.scales.map(x => [x.id, x.score, x.label, x.answers])]);
+  let h1 = 5381, h2 = 52711;
+  for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); h1 = (h1 * 33) ^ c; h2 = (h2 * 33) ^ c; }
+  return 'rec_' + (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
+// 이 기기에 쌓인 기록을 센터 구글시트로 보냄 (같은 기록은 시트에 한 번만 들어감)
+let sending = false;
+async function sendRecordsToSheet() {
+  if (sending) return;
+  if (!config.api) { alert('구글시트 주소가 없습니다. 척도·설정 관리 → 설정 파일 → ‘GitHub에 올린 설정 받아오기’ 또는 기본 설정에서 주소를 넣고 저장해 주세요.'); return; }
+  const picked = records.filter(r => recSel.has(r.id));
+  const list = picked.length ? picked : records.filter(r => !r.sentAt);
+  if (!list.length) { alert('보낼 기록이 없습니다. (모두 보낸 기록입니다)'); return; }
+  const again = list.filter(r => r.sentAt).length;
+  if (!confirm(`${picked.length ? '선택한' : '아직 보내지 않은'} 기록 ${list.length}건을 구글시트로 보낼까요?${again ? `\n(이미 보낸 ${again}건은 시트에 중복으로 들어가지 않습니다)` : ''}\n행사가 있는 기록은 ‘응답 - 행사이름’ 탭으로 들어갑니다.`)) return;
+  if (!navigator.onLine) { alert('인터넷에 연결되어 있지 않습니다. 와이파이를 켠 뒤 다시 눌러 주세요.'); return; }
+  sending = true; let ok = 0, fail = 0, lastErr = '';
+  for (let i = 0; i < list.length; i++) {
+    recMsg = `<div class="msg info">구글시트로 보내는 중… ${i + 1} / ${list.length}</div>`; renderRecords();
+    try { await postResult(sheetPayload(list[i].snap, '센터기기', recordKey(list[i].snap))); list[i].sentAt = today(); ok++; }
+    catch (e) { fail++; lastErr = e.message; }
+  }
+  saveRecords(); sending = false;
+  recMsg = fail ? `<div class="msg err">${ok}건 보냈고 ${fail}건은 보내지 못했습니다 (${esc(lastErr)}). 인터넷 연결을 확인하고 다시 눌러 주세요. 보낸 기록은 중복으로 들어가지 않습니다.</div>`
+    : `<div class="msg ok">${ok}건을 구글시트로 보냈습니다.</div>`;
+  recSel = new Set(); renderRecords();
 }
 function exportRecords() {
   const ids = [], meta = {};
   records.slice().reverse().forEach(r => r.snap.scales.forEach(s => { if (!meta[s.id]) { ids.push(s.id); meta[s.id] = { name: s.shortName || s.name, method: s.method, n: s.answers.length }; } else meta[s.id].n = Math.max(meta[s.id].n, s.answers.length); }));
-  const head = ['검사일시', '행사', '이름', '성별', '연령대', '거주지'];
+  const head = ['검사일시', '행사', '이름', '연락처', '성별', '연령대', '거주지'];
   ids.forEach(id => { const m = meta[id]; for (let i = 0; i < m.n; i++) head.push(`${m.name} ${i + 1}`); head.push(m.method === 'sum' ? m.name + ' 점수' : m.name + ' 결과', m.name + ' 단계'); });
   head.push('총결과');
   const aoa = [head];
   records.forEach(r => {
-    const sn = r.snap, row = [sn.date, sn.event ? sn.event.name : '', sn.person.name, sn.person.gender, sn.person.age, sn.person.region];
+    const sn = r.snap, row = [sn.date, sn.event ? sn.event.name : '', sn.person.name, sn.person.phone || '', sn.person.gender, sn.person.age, sn.person.region];
     ids.forEach(id => { const m = meta[id], s = sn.scales.find(x => x.id === id);
       for (let i = 0; i < m.n; i++) row.push(s ? (s.answers[i] || '') : '');
       row.push(s ? (s.method === 'sum' ? s.score : s.label) : '', s ? s.level : ''); });
@@ -3407,7 +3444,7 @@ function renderRegionEditor() {
       <td><input type="checkbox" data-bind="regions.${j}.message" ${r.message ? 'checked' : ''}></td><td>${act('delRegion', '×', { j }, 'sm danger')}</td></tr>`).join('')}
     </table><div class="bar">${act('addRegion', '+ 지역 추가', {}, '')}</div></div>`;
 }
-const eventLink = ev => (draft.publicUrl || '') + ((draft.publicUrl || '').includes('?') ? '&' : '?') + 'e=' + ev.id;
+const eventLink = ev => String(draft.publicUrl || '').split('?')[0].split('#')[0] + '?e=' + ev.id;   // 기본 주소에 ?e=… 가 붙어 있어도 떼고 만듦
 function qrDataUrl(text, cell) { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createDataURL(cell || 8, 4); }
 function renderEventEditor() {
   const evs = draft.events;
