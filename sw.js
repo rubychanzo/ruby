@@ -1,5 +1,5 @@
 // 오프라인 사용을 위한 캐시 (프로그램 파일을 바꿔 올리면 다음 실행 때 자동으로 새 버전 반영)
-const CACHE = 'mhs-v3';
+const CACHE = 'mhs-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
